@@ -194,7 +194,7 @@ structure Segment where
   p1 : Point
   p2 : Point
 
-def length (l : Segment) : Float := distance l.p1 l.p2
+def segmentLength (l : Segment) : Float := distance l.p1 l.p2
 
 /- Which names are introduced by the declaration of RectangularPrism? -/
 /- p.height, p.width, p.depth, p.mk -/
@@ -276,3 +276,167 @@ def div (n : Nat) (k : Nat) : Nat :=
   if n < k then
     0
   else Nat.succ (div (n - k) k)
+
+structure PPoint (α : Type) where
+  x : α
+  y : α
+
+def natOrigin : PPoint Nat := { x := Nat.zero,
+                                y := Nat.zero }
+
+def replaceX (point : PPoint α) (newX : α) : PPoint α :=
+  { point with x := newX }
+                                
+#eval replaceX natOrigin 5
+
+inductive Sign where
+  | pos
+  | neg
+
+def posOrNegThree (s : Sign) : match s with | Sign.pos => Nat | Sign.neg => Int :=
+  match s with
+  | Sign.pos => ( 3 : Nat)
+  | Sign.neg => (-3 : Int)
+
+#eval posOrNegThree Sign.pos
+#eval posOrNegThree Sign.neg
+
+def primesUnder10 : List Nat := [2, 3, 5, 7]
+
+inductive MyList (α : Type) where
+  | nil  : MyList α
+  | cons : α → MyList α → MyList α
+
+def explicitPrimesUnder10 : List Nat :=
+  List.cons 2 (List.cons 3 (List.cons 5 (List.cons 7 List.nil)))
+
+#eval explicitPrimesUnder10
+
+#eval List.length ["Sourdough", "bread"]
+
+def length (xs : List α) : Nat :=
+  match xs with
+  | List.nil        => Nat.zero
+  | List.cons _ lst => Nat.succ (length lst)
+
+
+#eval length ["Sourdough", "bread"]
+
+def length1 (xs : List α) : Nat :=
+  match xs with
+  | []      => 0
+  | _ :: ys => Nat.succ (length1 ys)
+
+#eval length1 ["Sourdough", "bread"]
+
+#eval ["Sourdough", "bread"].length
+
+#check List.length
+#check List.length (α := Int)
+
+inductive MyOption (α : Type) : Type where
+  | none           : MyOption α
+  | some (val : α) : MyOption α
+
+def head? {α : Type} (xs : List α) : Option α :=
+  match xs with
+  | []     => none
+  | y :: _ => some y
+
+#eval head? ([] : List String)
+#eval head? ["Sourdough", "bread"]
+
+#eval primesUnder10.head?
+
+/- List.head  requires the caller to provide mathematical evidence that the list is not empty -/
+/- List.head? returns an Option -/
+/- List.head! crashes the program when passed an empty list -/
+/- List.headD takes a default value to return in case the list is empty -/
+
+#eval [].head? (α := Int)
+#eval ([] : List Int).head?
+
+structure MyProd (α : Type) (β : Type) : Type where
+  fst : α
+  snd : β
+
+def fives1 : String × Int := { fst := "five", snd := 5 }
+def fives2 : String × Int := ("five", 5)
+
+def sevens1 : String × Int × Nat   := ("VII",  7,  4)
+def sevens2 : String × (Int × Nat) := ("VII",  7,  4)
+def sevens3 : (String × Int) × Nat := (("VII", 7), 4)
+
+inductive MySum (α : Type) (β : Type) : Type where
+  | inl : α → MySum α β
+  | inr : β → MySum α β
+
+def PetName : Type := String ⊕ String
+
+def animals : List PetName :=
+  [Sum.inl "Spot",  /- dog -/
+   Sum.inr "Tiger", /- cat -/
+   Sum.inl "Fifi",  /- dog -/
+   Sum.inl "Rex",   /- dog -/
+   Sum.inr "Floof"] /- cat -/
+
+def howManyDogs (pets : List PetName) : Nat :=
+  match pets with
+  | []                => 0
+  | Sum.inl _ :: pets => howManyDogs pets + 1
+  | Sum.inr _ :: pets => howManyDogs pets
+
+#eval howManyDogs animals
+
+/- in polymorphic code can be used as a placeholder for missing data -/
+inductive MyUnit : Type where
+  | unit : MyUnit
+
+/- ann = annotation -/
+inductive ArithExpr (ann : Type) : Type where
+  | int   : ann → Int → ArithExpr ann
+  | plus  : ann → ArithExpr ann → ArithExpr ann → ArithExpr ann
+  | minus : ann → ArithExpr ann → ArithExpr ann → ArithExpr ann
+  | times : ann → ArithExpr ann → ArithExpr ann → ArithExpr ann
+
+/- ArithExpr SourcePos  -/
+/- ArithExpr Unit  -/
+
+/- Empty indicates unreachable code -/
+
+/- Types that offer multiple constructors are called SUM TYPES.
+   Types whose single constructor takes multiple arguments are called PRODUCT TYPES. -/
+
+def badSameLength (xs : List α) (ys : List β) : Bool :=
+  match (xs, ys) with
+  | ([], []) => true
+  | (_ :: xs', _ :: ys') => badSameLength xs' ys'
+  | _ => false
+
+/- nested pattern matching -/
+def sameLength (xs : List α) (ys : List β) : Bool :=
+  match xs with
+  | [] =>
+    match ys with
+    | [] => true
+    | _ => false
+  | _ :: xs' =>
+    match ys with
+    | _ :: ys' => sameLength xs' ys'
+    | _ => false
+
+inductive WoodSplittingTool where
+  | axe
+  | maul
+  | froe
+  deriving Repr
+  
+#eval WoodSplittingTool.axe
+
+def allTools : List WoodSplittingTool := [
+  WoodSplittingTool.axe,
+  WoodSplittingTool.maul,
+  WoodSplittingTool.froe
+]
+
+#eval allTools
