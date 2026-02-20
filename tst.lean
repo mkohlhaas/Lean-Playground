@@ -419,11 +419,11 @@ def sameLength (xs : List α) (ys : List β) : Bool :=
   | [] =>
     match ys with
     | [] => true
-    | _ => false
+    | _  => false
   | _ :: xs' =>
     match ys with
     | _ :: ys' => sameLength xs' ys'
-    | _ => false
+    | _        => false
 
 inductive WoodSplittingTool where
   | axe
@@ -440,3 +440,90 @@ def allTools : List WoodSplittingTool := [
 ]
 
 #eval allTools
+
+def lastEntry (l : List α) : Option α := 
+  match l with
+  | []       => none
+  | [elem]   => some elem
+  | _ :: xs  => lastEntry xs
+
+#eval lastEntry ([] : List Nat)
+#eval lastEntry [1]
+#eval lastEntry [1, 2, 3, 4, 5]
+
+def List.findFirst? {α : Type} (xs : List α) (predicate : α → Bool) : Option α :=
+  match xs with
+  | [] => none
+  | x :: xs => if predicate x then some x else List.findFirst? xs predicate
+
+#eval List.findFirst? [] even
+#eval List.findFirst? [1, 2, 3, 4, 5] even
+
+def Prod.switch {α β : Type} (pair : α × β) : β × α :=
+  match pair with
+  | (a, b) => (b, a)
+
+#eval Prod.switch (1, 2) 
+
+inductive Pet where
+ | dogName : String -> Pet
+ | catName : String -> Pet
+
+def animals1 : List Pet :=
+  [Pet.dogName "Spot",
+   Pet.catName "Tiger",
+   Pet.dogName "Fifi",
+   Pet.dogName "Rex",
+   Pet.catName "Floof"]
+
+def howManyDogs1 (pets : List Pet) : Nat :=
+  match pets with
+  | []                    => 0
+  | Pet.dogName _ :: pets => howManyDogs1 pets + 1
+  | Pet.catName _ :: pets => howManyDogs1 pets
+
+#eval howManyDogs1 animals1
+
+def badZip {α β : Type} (xs : List α) (ys : List β) : List (α × β) :=
+  match (xs, ys) with
+  | ([], _) => []
+  | (_, []) => []
+  | (x :: xs', y :: ys') => List.cons (x, y) (badZip xs' ys')
+
+
+def zip {α β : Type} (xs : List α) (ys : List β) : List (α × β) :=
+  match xs with
+  | [] => []
+  | x :: xs' => match ys with
+                | [] => []
+                | y :: ys' => List.cons (x, y) (zip xs' ys')
+
+#eval zip [1, 2, 3, 4, 5] ["a", "b", "c", "d", "e"]
+#eval zip [1, 2, 3, 4   ] ["a", "b", "c", "d", "e"]
+#eval zip [1, 2, 3, 4, 5] ["a", "b", "c", "d"     ]
+
+def takeAcc (n : Nat) (xs : List α) (ys : List α) : List α :=
+  match n with
+  | 0 => ys
+  | _ => match xs with
+         | []       => List.reverse ys
+         | x :: xs' => takeAcc (n - 1) xs' (List.cons x ys)
+
+def take (n : Nat) (xs : List α) : List α := takeAcc n xs []
+
+#eval take 1 ["bolete", "oyster"] 
+#eval take 3 ["bolete", "oyster"] 
+
+def distribute (e : α × (β ⊕ γ)) : (α × β) ⊕ (α × γ) :=
+  match e with
+  | (a, Sum.inl b) => Sum.inl (a, b)
+  | (a, Sum.inr c) => Sum.inr (a, c)
+  
+#eval distribute (1, (Sum.inl "a" : String ⊕ String))
+#eval distribute (1, (Sum.inr "a" : String ⊕ String))
+
+/- Using the analogy between types and arithmetic, write a function that turns multiplication by two into a sum. -/
+def mult2sum (e : Bool × α) : α ⊕ α :=
+  match e with
+  | (true,  a) => Sum.inl a
+  | (false, a) => Sum.inr a
