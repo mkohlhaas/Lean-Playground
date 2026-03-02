@@ -265,6 +265,10 @@ instance : ToString Pos1 where
 -- Define a datatype that represents only even numbers.
 -- Define instances of Add, Mul and ToString that allow it to be used conveniently.
 
+-- Christian wants an inductive type definition
+-- https://proofassistants.stackexchange.com/questions/2435/recursive-type-class-for-ofnat-even
+-- https://github.com/James-Oswald/Functional-Programming-In-Lean/blob/lean-3.51.1/src/4.2.lean
+
 structure Even where
   even : Nat
 
@@ -311,3 +315,90 @@ instance : ToString Even where
 /- HTTP Requests -/
 
 -- TBD ;-)
+
+/- ----------------------------- -/
+/- Type Classes and Polymorphism -/
+/- ----------------------------- -/
+
+/- ----------------------------------- -/
+/- Checking Polymorphic Function Types -/
+/- ----------------------------------- -/
+
+-- couldn't figure out type of implicit arguments -> prints metavariables
+#check (IO.println)
+
+-- signature without metavariables
+#check @IO.println
+
+/- ------------------------------------------------------ -/
+/- Defining Polymorphic Functions with Instance Implicits -/
+/- ------------------------------------------------------ -/
+
+def List.sumOfContents1 [Add α] [OfNat α 0] : List α → α
+  | []      => 0
+  | x :: xs => x + xs.sumOfContents1
+
+def List.sumOfContents2 [Add α] [Zero α] : List α → α
+  | []      => 0
+  | x :: xs => x + xs.sumOfContents2
+
+def fourNats : List Nat := [1, 2, 3, 4]
+
+#eval fourNats.sumOfContents1
+#eval fourNats.sumOfContents2
+
+def fourPos : List Pos := [1, 2, 3, 4]
+
+-- Pos doesn't have zeros
+#eval fourPos.sumOfContents1
+#eval fourPos.sumOfContents2
+
+-- this function is in the standard library
+#check List.sum
+
+-- Specifications of required instances in square brackets are called INSTANCE IMPLICITS.
+
+-- The most important difference between ordinary IMPLICIT ARGUMENTS and INSTANCE IMPLICITS is the strategy that Lean uses to find an argument value.
+-- In the case of ordinary IMPLICIT ARGUMENTS, Lean uses a technique called UNIFICATION to find a single unique argument value that would allow the program to pass the type checker.
+-- This process relies only on the specific types involved in the function's definition and the call site.
+-- For INSTANCE IMPLICITS, Lean instead consults a built-in table of instance values.
+
+structure PPoint (α : Type) where
+  x : α
+  y : α
+
+--     α must also be addable
+--           ^^^^^^^
+instance [Add α] : Add (PPoint α) where
+  add p1 p2 := { x := p1.x + p2.x, y := p1.y + p2.y }
+
+/- ------------------------------  -/
+/- Methods and Implicit Arguments  -/
+/- ------------------------------  -/
+
+-- The type parameter α can be implicit because the arguments to Add.add provide information about which type the user intended. 
+#check Add.add 
+
+-- In the case of OfNat.ofNat, the particular Nat literal to be decoded does not appear as part of any other parameter's type.
+-- This means that Lean would have no information to use when attempting to figure out the implicit parameter n.
+-- In this case, Lean uses an explicit parameter for the class's method.
+--                                                     ^^^^^^^^^^
+#check OfNat.ofNat
+
+/- --------- -/
+/- Exercises -/
+/- --------- -/
+
+-- see solution for inductive type
+-- https://proofassistants.stackexchange.com/questions/2435/recursive-type-class-for-ofnat-even
+-- https://github.com/James-Oswald/Functional-Programming-In-Lean/blob/lean-3.51.1/src/4.2.lean
+
+-- Even Number Literals
+
+instance : OfNat Even n where
+  ofNat := Even.mk (n / 2)
+
+/- --------------------------- -/
+/- Controlling Instance Search -/
+/- --------------------------- -/
+
