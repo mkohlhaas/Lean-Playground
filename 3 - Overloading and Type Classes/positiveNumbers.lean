@@ -402,3 +402,204 @@ instance : OfNat Even n where
 /- Controlling Instance Search -/
 /- --------------------------- -/
 
+def addNatPos : Nat → Pos → Pos
+  | 0, p     => p
+  | n + 1, p => Pos.succ (addNatPos n p)
+
+def addPosNat : Pos → Nat → Pos
+  | p, 0     => p
+  | p, n + 1 => Pos.succ (addPosNat p n)
+
+#eval addNatPos 5 4
+#eval addPosNat 5 4
+
+/- -------------------------- -/
+/- Heterogeneous Overloadings -/
+/- -------------------------- -/
+
+instance : HAdd Nat Pos Pos where
+  hAdd := addNatPos
+
+instance : HAdd Pos Nat Pos where
+  hAdd := addPosNat
+
+#eval (3 : Nat) + (5 : Nat)
+#eval (3 : Pos) + (5 : Nat)
+#eval (3 : Nat) + (5 : Pos)
+#eval (3 : Pos) + (5 : Pos)
+
+class HPlus1 (α : Type) (β : Type) (γ : Type) where
+  hPlus : α → β → γ
+  
+instance : HPlus1 Nat Pos Pos where
+  hPlus := addNatPos
+
+instance : HPlus1 Pos Nat Pos where
+  hPlus := addPosNat
+
+-- Note: metavariables represent unknown parts of a program that could not be inferred
+-- see error message from language server
+#eval HPlus1.hPlus (3 : Pos) (5 : Nat)
+
+-- with (unconvenient) type annotations
+#eval (HPlus1.hPlus (3 : Pos) (5 : Nat) : Pos)
+
+/- ----------------- -/
+/- Output Parameters -/
+/- ----------------- -/
+
+-- Most type class parameters are inputs to the search algorithm: they are used to select an instance.
+
+-- In some cases, it can be convenient to start the search process even when some of the type parameters
+-- are not yet known, and use the instances that are discovered in the search to determine values for metavariables.
+
+-- The parameters that aren't needed to start instance search are outputs of the process, which is declared with
+-- the outParam modifier.
+
+class HPlus (α : Type) (β : Type) (γ : outParam Type) where
+  hPlus : α → β → γ
+
+instance : HPlus Nat Pos Pos where
+  hPlus := addNatPos
+
+instance : HPlus Pos Nat Pos where
+  hPlus := addPosNat
+
+-- With this output parameter, type class instance search is able to select an instance without knowing γ in advance.
+#eval HPlus.hPlus (3 : Pos) (5 : Nat)
+
+/- ----------------- -/
+/- Default Instances -/
+/- ----------------- -/
+
+-- Default instances are instances that are available for instance search even when not all their inputs are known. 
+
+-- When one of these instances can be used, it will be used.
+
+instance [Add α] : HPlus α α α where
+  hPlus := Add.add
+
+-- With this instance, hPlus can be used for any addable type, like Nat:
+#eval HPlus.hPlus (3 : Nat) (5 : Nat)
+
+#check HPlus.hPlus (5 : Nat) (3 : Nat)
+#check HPlus.hPlus (5 : Nat)
+
+--In the vast majority of cases, when someone supplies one argument to addition, the other argument will have the same type.
+-- To make this instance into a default instance, apply the `default_instance` attribute.
+
+@[default_instance]
+instance [Add α] : HPlus α α α where
+  hPlus := Add.add
+
+#check HPlus.hPlus (5 : Nat)
+
+-- Default instances can also be assigned priorities that affect which will be chosen in situations where more than one might apply.
+-- For more information on default instance priorities, please consult the Lean manual.
+
+/- --------- -/
+/- Exercises -/
+/- --------- -/
+
+-- TBD
+
+/- =================== -/
+/- Arrays and Indexing -/
+/- =================== -/
+
+/- ------ -/
+/- Arrays -/
+/- ------ -/
+
+def northernTrees : Array String := #["sloe", "birch", "elm", "oak"]
+
+#eval northernTrees.size 
+
+#eval northernTrees[0]
+#eval northernTrees[1]
+#eval northernTrees[2]
+#eval northernTrees[3]
+
+#eval northernTrees[4]
+
+/- --------------- -/
+/- Non-Empty Lists -/
+/- --------------- -/
+
+structure NonEmptyList (α : Type) : Type where
+  head : α
+  tail : List α
+
+def idahoSpiders : NonEmptyList String := {
+  head := "Banded Garden Spider",
+  tail := [
+    "Long-legged Sac Spider",
+    "Wolf Spider",
+    "Hobo Spider",
+    "Cat-faced Spider"
+  ]
+}
+
+def NonEmptyList.get? : NonEmptyList α → Nat → Option α
+  | xs, 0                              => some xs.head
+  | {head := _, tail := []}, _ + 1     => none
+  | {head := _, tail := h :: t}, n + 1 => get? {head := h, tail := t} n
+
+def NonEmptyList.get1? : NonEmptyList α → Nat → Option α
+  | xs, 0     => some xs.head
+  | xs, n + 1 => xs.tail[n]?
+
+abbrev NonEmptyList.inBounds (xs : NonEmptyList α) (i : Nat) : Prop :=
+  i ≤ xs.tail.length
+
+theorem atLeastThreeSpiders :  idahoSpiders.inBounds 2 := by decide
+theorem notSixSpiders       : ¬idahoSpiders.inBounds 5 := by decide
+
+-- check at compile-time - Option not required
+def NonEmptyList.get (xs : NonEmptyList α) (i : Nat) (ok : xs.inBounds i) : α :=
+  match i with
+  | 0     => xs.head
+  | n + 1 => xs.tail[n]
+
+/- -------------------- -/
+/- Overloading Indexing -/
+/- -------------------- -/
+
+class MyGetElem
+    (coll     : Type)
+    (idx      : Type)
+    (item     : outParam Type)
+    (inBounds : outParam (coll → idx → Prop)) where
+  getElem : (c : coll) → (i : idx) → inBounds c i → item
+
+instance : GetElem (NonEmptyList α) Nat α NonEmptyList.inBounds where
+  getElem := NonEmptyList.get
+
+-- NonEmptyList becomes just as convenient to use as List 
+#eval idahoSpiders.head
+#eval idahoSpiders[0]  
+#eval idahoSpiders[1]  
+#eval idahoSpiders[2]  
+#eval idahoSpiders[3]  
+#eval idahoSpiders[4]  
+
+#eval idahoSpiders[5]  
+
+instance : GetElem (List α) Pos α (fun list n => list.length > n.toNat) where
+  getElem (xs : List α) (i : Pos) ok := xs[i.toNat]
+
+def carBrands := ["BMW", "Mercedes", "VW"]
+
+#eval carBrands[one]
+#eval carBrands[two]
+
+#eval carBrands[three]
+
+-- using Bool as an index type
+instance : GetElem (PPoint α) Bool α (fun _ _ => True) where
+  getElem (p : PPoint α) (i : Bool) _ := if not i then p.x else p.y
+  
+def p1 := { x := 1, y := 2 : PPoint Nat}
+
+#eval p1[false]
+#eval p1[true] 
