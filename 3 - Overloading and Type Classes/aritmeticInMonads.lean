@@ -290,17 +290,48 @@ open Expr Prim NeedsSearch
       (prim plus (prim (other choose) (const (-5)) (const 5))
         (const 5)))).takeAll
 
-
-
-
-
-
-
-
-
 /- ------------------- -/
 /- Custom Environments -/
 /- ------------------- -/
+
+-- The mapping from function names to function implementations is called an ENVIRONMENT.
+
+-- Using functions as a monad is typically called a READER MONAD. 
+
+-- by convention ρ is used for environments
+def Reader (ρ : Type) (α : Type) : Type := ρ → α
+
+def read : Reader ρ ρ := fun env => env
+
+def Reader.pure (x : α) : Reader ρ α := fun _ => x
+
+-- Reader ρ α → (α → Reader ρ β) → Reader ρ β == (ρ → α) → (α → ρ → β) → (ρ → β)
+-- def Reader.bind {ρ : Type} {α : Type} {β : Type} (result : ρ → α) (next : α → ρ → β) : ρ → β :=
+--  fun env => next (result env) env
+
+def Reader.bind (result : Reader ρ α) (next : α → Reader ρ β) : Reader ρ β :=
+  fun env => next (result env) env
+
+instance : Monad (Reader ρ) where
+  pure x   := fun _ => x
+  bind x f := fun env => f (x env) env
+  
+abbrev Env : Type := List (String × (Int → Int → Int))
+
+def exampleEnv : Env := [("max", max),
+                         ("mod", (· % ·))]
+
+-- returns 0 if the function is unknown
+def applyPrimReader (op : String) (x : Int) (y : Int) : Reader Env Int :=
+  read >>= fun env => match env.lookup op with
+                      | none   => pure 0
+                      | some f => pure (f x y)
+
+#eval
+  evaluateM'' applyPrimReader
+    (prim (other "max") (prim plus (const 5) (const 4))
+      (prim times (const 3) (const 2)))
+    exampleEnv
 
 /- --------- -/
 /- Exercises -/
