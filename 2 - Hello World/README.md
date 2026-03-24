@@ -1,0 +1,10 @@
+- Order of files:
+  - 0 Hello.lean
+  - 0 HelloName.lean
+  - 0 greetingExercise.lean
+  - 0 countdown.lean
+  - 0 $ lake new greeting -> greeting/
+  - 0 $ lake new feline   -> feline/
+  - 0 nestedActions.lean
+  - 0 flexibleLayouts.lean
+  - 0 interlude.lean
