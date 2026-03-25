@@ -1,7 +1,8 @@
 def main : IO Unit := do
-  let englishGreeting := IO.println "Hello!"
-  IO.println "Bonjour!"
-  englishGreeting
+  let englishGreeting := IO.println "Hello!" -- expression
+  IO.println "Bonjour!"                      -- action
+  englishGreeting                            -- action
 
-/- Bonjour! -/
-/- Hello! -/
+-- output:
+-- Bonjour!
+-- Hello!

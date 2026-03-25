@@ -1,0 +1,1 @@
+lean --run countdown.lean

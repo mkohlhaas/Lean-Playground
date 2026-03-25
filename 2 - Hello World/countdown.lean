@@ -1,4 +1,4 @@
-#eval "Hello!!!".dropEndWhile (· == '!')
+#eval "Hello!!!".dropEndWhile (· == '!')                      
 
 #eval "Hello...   ".dropEndWhile (fun c => not (c.isAlphanum))
 
@@ -6,7 +6,7 @@ def twice (action : IO Unit) : IO Unit := do
   action
   action
 
-#eval twice (IO.println "shy")
+#eval twice (IO.println "shy")                                
 
 def nTimes (action : IO Unit) : Nat → IO Unit
   | 0     => pure ()
@@ -14,7 +14,7 @@ def nTimes (action : IO Unit) : Nat → IO Unit
     action
     nTimes action n
 
-#eval nTimes (IO.println "Hello") 3
+#eval nTimes (IO.println "Hello") 3                           
 
 def countdown : Nat → List (IO Unit)
   | 0     => [IO.println "Blast off!"]
@@ -22,12 +22,15 @@ def countdown : Nat → List (IO Unit)
 
 def from5 : List (IO Unit) := countdown 5
 
-#eval from5.length
+#eval from5.length                                            
 
 def runActions : List (IO Unit) → IO Unit
-  | []             => pure ()
-  | act :: actions => do
-                      act
-                      runActions actions
+  | []                => pure ()
+  | action :: actions => do
+                         action
+                         runActions actions
+
+-- quickly testing IO actions
+#eval runActions from5
 
 def main : IO Unit := runActions from5

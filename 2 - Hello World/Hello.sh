@@ -1,0 +1,1 @@
+lean --run Hello.lean
