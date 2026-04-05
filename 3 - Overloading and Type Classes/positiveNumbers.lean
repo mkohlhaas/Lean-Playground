@@ -8,9 +8,11 @@ inductive Pos : Type where
   | one  : Pos
   | succ : Pos → Pos
 
+-- numeric literals are rejected
 def seven1 : Pos := 7                  
 def seven2 : Pos := Pos.succ $ Pos.succ $ Pos.succ $ Pos.succ $ Pos.succ $ Pos.succ Pos.one
 
+-- addition and multiplication cannot be used
 def fourteen1  : Pos := seven2 + seven2
 def fortyNine1 : Pos := seven2 * seven2
 
@@ -64,7 +66,11 @@ def fourteen2 : Pos := plus seven2 seven2
 
 instance : Add Pos where
   add := Pos.plus
-  
+
+#check Add 
+#check HAdd
+
+-- now we can use `+`
 def fourteen3 : Pos := seven2 + seven2
 
 #eval fourteen3
@@ -72,8 +78,6 @@ def fourteen3 : Pos := seven2 + seven2
 /- --------------------- -/
 /- Conversion to Strings -/
 /- --------------------- -/
-
--- ToString Type Class
 
 def posToString (atTop : Bool) (p : Pos) : String :=
   /- let paren s := if atTop then s else "(" ++ s ++ ")" -/
@@ -96,6 +100,7 @@ def Pos.toNat : Pos → Nat
 instance : ToString Pos where
   toString x := toString $ x.toNat
 
+-- nicer output
 #eval s!"There are {seven2}"
 
 /- ------------------------- -/
@@ -108,6 +113,9 @@ instance : ToString Pos where
 -- Mul  -> same      type
 -- HMul -> different type
 
+#check Mul 
+#check HMul
+
 def Pos.mul : Pos → Pos → Pos
   | Pos.one, k    => k
   | Pos.succ n, k => n.mul k + k
@@ -115,9 +123,9 @@ def Pos.mul : Pos → Pos → Pos
 instance : Mul Pos where
   mul := Pos.mul
 
-#eval [seven2 * Pos.one,
-       seven2 * seven2,
-       Pos.succ Pos.one * seven2]
+#eval seven2 * Pos.one         
+#eval seven2 * seven2          
+#eval Pos.succ Pos.one * seven2
 
 /- --------------- -/
 /- Literal Numbers -/
@@ -133,13 +141,11 @@ class MyZero (α : Type) where
 class MyOne (α : Type) where
   one : α 
 
--- convert from Nat to an α
-class MyOfNat (α : Type) (_ : Nat) where
+-- convert from Nat _n to an α
+class MyOfNat (α : Type) (_n : Nat) where
   ofNat : α
 
-/- instances -/
-
--- Zero instance doesn't make any sense for Pos
+-- Zero instance doesn't make sense for Pos.
 
 instance : One Pos where
   one := Pos.one
@@ -174,7 +180,7 @@ instance : OfNat LT4 3 where
 -- For Pos, the OfNat instance should work for any Nat other than Nat.zero.
 instance : OfNat Pos (n + 1) where
   ofNat := let rec natPlusOne : Nat → Pos       
-             | 0     => Pos.one                 
+             | 0     => Pos.one                  -- 0 (Nat) will be mapped to 1 (Pos)
              | k + 1 => Pos.succ $ natPlusOne k 
            natPlusOne n                         
 
@@ -191,11 +197,22 @@ def seven : Pos := 7
 def eight : Pos := 8
 -- …
 
+#eval one   
+#eval two   
+#eval three 
+#eval four  
+#eval five  
+#eval six   
+#eval seven 
+#eval eight 
+
 /- --------- -/
 /- Exercises -/
 /- --------- -/
 
+-- ----------------------
 -- Another Representation
+-- ----------------------
 
 structure Pos1 where
   succ ::
@@ -217,7 +234,7 @@ def altSix   := Pos1.succ 5
 #eval altFive  
 #eval altSix   
 
-/- Addition -/
+-- Addition
 
 def Pos1.plus : Pos1 → Pos1 → Pos1
   | Pos1.succ n, Pos1.succ m => Pos1.succ (n + m + 1)
@@ -230,7 +247,7 @@ instance : Add Pos1 where
 #eval altTwo + altTwo
 #eval altSix + altSix
 
-/- Multiplication -/
+-- Multiplication
 
 def Pos1.mul : Pos1 → Pos1 → Pos1
   | Pos1.succ n, Pos1.succ m => Pos1.succ ((n + 1) * (m + 1) - 1)
@@ -262,7 +279,16 @@ def eight1 : Pos1 := 8
 -- …
 
 instance : ToString Pos1 where
-  toString x := toString (x.pred + 1)
+  toString x := toString $ x.pred + 1
+
+#eval one1  
+#eval two1  
+#eval three1
+#eval four1 
+#eval five1 
+#eval six1  
+#eval seven3
+#eval eight1
 
 #eval s!"There are {one1}"  
 #eval s!"There are {two1}"  
@@ -273,7 +299,9 @@ instance : ToString Pos1 where
 #eval s!"There are {seven3}"
 #eval s!"There are {eight1}"
 
-/- Even Numbers -/
+-- ------------
+-- Even Numbers
+-- ------------
 
 -- Define a datatype that represents only even numbers.
 -- Define instances of Add, Mul and ToString that allow it to be used conveniently.
@@ -292,6 +320,7 @@ def evenSix    := Even.mk 3
 def evenEight  := Even.mk 4
 def evenTen    := Even.mk 5
 def evenTwelve := Even.mk 6
+-- …
 
 #eval evenZero   
 #eval evenTwo    
@@ -307,15 +336,16 @@ def Even.plus : Even → Even → Even
 instance : Add Even where
   add := Even.plus
 
-#eval evenZero   + evenZero  
-#eval evenZero   + evenTwo   
-#eval evenTwo    + evenTwo   
-#eval evenEight  + evenSix   
-#eval evenTwelve + evenSix   
-#eval evenTwelve + evenTwelve
+#eval evenZero   + evenZero               
+#eval evenZero   + evenTwo                
+#eval evenTwo    + evenTwo                
+#eval evenEight  + evenSix                
+#eval evenTwelve + evenSix                
+#eval evenTwelve + evenTwelve             
+#eval evenTwelve + evenTwelve + evenTwelve
 
 instance : ToString Even where
-  toString e := toString (2 * e.even)
+  toString e := toString $ 2 * e.even
 
 #eval s!"There are {evenZero}"  
 #eval s!"There are {evenTwo}"   

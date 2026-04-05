@@ -1,3 +1,20 @@
+-- from previous chapters
+
+structure NonEmptyList (α : Type) : Type where
+  head : α
+  tail : List α
+
+abbrev NonEmptyList.inBounds (xs : NonEmptyList α) (i : Nat) : Prop :=
+  i ≤ xs.tail.length
+
+def NonEmptyList.get (xs : NonEmptyList α) (i : Nat) (ok : xs.inBounds i) : α :=
+  match i with
+  | 0     => xs.head
+  | n + 1 => xs.tail[n]
+
+instance : GetElem (NonEmptyList α) Nat α NonEmptyList.inBounds where
+  getElem := NonEmptyList.get
+
 /- ======================= -/
 /- Additional Conveniences -/
 /- ======================= -/

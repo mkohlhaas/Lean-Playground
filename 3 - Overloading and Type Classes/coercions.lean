@@ -1,3 +1,56 @@
+import Lean -- for Lean.Json.escape
+
+-- from previous chapters
+
+inductive Pos : Type where
+  | one  : Pos
+  | succ : Pos → Pos
+
+def Pos.plus : Pos → Pos → Pos
+  | Pos.one, k    => Pos.succ k
+  | Pos.succ n, k => Pos.succ $ n.plus k
+
+instance : Add Pos where
+  add := Pos.plus
+  
+def Pos.toNat : Pos → Nat
+  | Pos.one    => 1
+  | Pos.succ n => n.toNat + 1
+  
+instance : ToString Pos where
+  toString x := toString $ x.toNat
+
+def Pos.mul : Pos → Pos → Pos
+  | Pos.one, k    => k
+  | Pos.succ n, k => n.mul k + k
+
+instance : Mul Pos where
+  mul := Pos.mul
+
+instance : One Pos where
+  one := Pos.one
+
+instance : OfNat Pos (n + 1) where
+  ofNat := let rec natPlusOne : Nat → Pos       
+             | 0     => Pos.one                 
+             | k + 1 => Pos.succ $ natPlusOne k 
+           natPlusOne n                         
+
+structure NonEmptyList (α : Type) : Type where
+  head : α
+  tail : List α
+
+abbrev NonEmptyList.inBounds (xs : NonEmptyList α) (i : Nat) : Prop :=
+  i ≤ xs.tail.length
+
+def NonEmptyList.get (xs : NonEmptyList α) (i : Nat) (ok : xs.inBounds i) : α :=
+  match i with
+  | 0     => xs.head
+  | n + 1 => xs.tail[n]
+
+instance : GetElem (NonEmptyList α) Nat α NonEmptyList.inBounds where
+  getElem := NonEmptyList.get
+
 /- ========= -/
 /- Coercions -/
 /- ========= -/

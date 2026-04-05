@@ -1,6 +1,7 @@
 - File Order
   - 0 positiveNumbers.lean
   - 0 typeClasses.lean
+  - 0 controllingInstanceSearch.lean
   - 0 arrays.lean
   - 0 standardClasses.lean
   - 0 coercions.lean
