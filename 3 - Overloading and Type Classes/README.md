@@ -1,11 +1,8 @@
 - File Order
-  - 0 positiveNumbers.lean
-  - 0 typeClasses.lean
-  - 0 controllingInstanceSearch.lean
-  - 0 arrays.lean
-  - 0 standardClasses.lean
-  - 0 coercions.lean
-  - 0 conveniences.lean
-  
-  - 0 numberingTreeNodes.lean
-  - 0 oneAPI.lean
+  - 1 positiveNumbers.lean
+  - 2 typeClasses.lean
+  - 3 controllingInstanceSearch.lean
+  - 4 arrays.lean
+  - 5 standardClasses.lean
+  - 6 coercions.lean
+  - 7 conveniences.lean

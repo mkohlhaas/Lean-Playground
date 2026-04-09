@@ -27,34 +27,34 @@ structure Tree : Type where
   latinName   : String
   commonNames : List String
 
--- useful when emphasizing that a structure type is tuple alike
-def oak : Tree :=
-  ⟨"Quercus robur", ["common oak", "European oak"]⟩
+-- ⟨…⟩ syntax
+def oak : Tree := ⟨"Quercus robur", ["common oak", "European oak"]⟩
 
--- idiomatic
+-- braces and fields syntax
 def birch : Tree :=
   { latinName   := "Betula pendula",
     commonNames := ["silver birch", "warty birch"]
   }
 
--- idiomatic
+-- where syntax
 def sloe : Tree where
   latinName   := "Prunus spinosa"
   commonNames := ["sloe", "blackthorn"]
 
 -- Behind the scenes, type classes are structure types and instances are values of these types.
 
--- same syntaxes allowed
 class Display (α : Type) where
   displayName : α → String
 
-instance : Display Tree :=
-  ⟨Tree.latinName⟩
+-- same syntaxes allowed
 
-instance : Display Tree :=
-  { displayName := Tree.latinName }
+-- ⟨…⟩ syntax
+instance : Display Tree := ⟨Tree.latinName⟩
 
--- idiomatic
+-- braces and fields syntax
+instance : Display Tree := { displayName := Tree.latinName }
+
+-- where syntax (idiomatic)
 instance : Display Tree where
   displayName t := t.latinName
 

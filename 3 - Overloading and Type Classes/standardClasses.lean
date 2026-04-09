@@ -37,7 +37,7 @@ instance : GetElem (NonEmptyList α) Nat α NonEmptyList.inBounds where
   getElem := NonEmptyList.get
 
 def idahoSpiders : NonEmptyList String := {
-  head :=   "Banded Garden Spider",
+  head := "Banded Garden Spider",
   tail := [ "Long-legged Sac Spider",
             "Wolf Spider",
             "Hobo Spider",

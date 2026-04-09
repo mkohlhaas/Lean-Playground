@@ -51,6 +51,14 @@ def NonEmptyList.get (xs : NonEmptyList α) (i : Nat) (ok : xs.inBounds i) : α 
 instance : GetElem (NonEmptyList α) Nat α NonEmptyList.inBounds where
   getElem := NonEmptyList.get
 
+def idahoSpiders : NonEmptyList String := {
+  head := "Banded Garden Spider",
+  tail := [ "Long-legged Sac Spider",
+            "Wolf Spider",
+            "Hobo Spider",
+            "Cat-faced Spider" ]
+}
+
 /- ========= -/
 /- Coercions -/
 /- ========= -/
@@ -64,8 +72,9 @@ instance : GetElem (NonEmptyList α) Nat α NonEmptyList.inBounds where
 /- Strings and Paths -/
 /- ----------------- -/
 
+-- Lean defines a coercion from String to FilePath
 def fileDumper : IO Unit := do
-  let stdin ← IO.getStdin
+  let stdin  ← IO.getStdin
   let stdout ← IO.getStdout
   stdout.putStr "Which file? "
   stdout.flush
@@ -77,17 +86,20 @@ def fileDumper : IO Unit := do
 /- Positive Numbers -/
 /- ---------------- -/
 
--- List.drop expects a Nat (author could have used a type class)
-#eval [1, 2, 3, 4].drop (2 : Pos)
+-- List.drop expects a Nat
+#eval [1, 2, 3, 4].drop (2 : Nat) 
+#eval [1, 2, 3, 4].drop (2 : Pos) 
 
--- type class Coe describes overloaded ways of coercing from one type to another
+-- type class Coe describes overloaded ways of coercing from α to β another
 class MyCoe (α : Type) (β : Type) where
   coe : α → β
+
+#check Coe                        
 
 instance : Coe Pos Nat where
   coe x := x.toNat
 
-#eval [1, 2, 3, 4].drop (2 : Pos)
+#eval [1, 2, 3, 4].drop (2 : Pos) 
 
 -- Pos.toNat was used
 #check [1, 2, 3, 4].drop (2 : Pos)
@@ -98,9 +110,9 @@ instance : Coe Pos Nat where
 
 -- There is already a coercion from Nat to Int.
 -- Because of that instance, combined with the Coe Pos Nat instance, allows:
+-- Pos -> Nat -> Int
 def oneInt : Int := Pos.one
 
--- even circular coercions work
 inductive A where
   | a
 
@@ -108,23 +120,25 @@ inductive B where
   | b
 
 instance : Coe A B where
-  coe _ := B.b
+  coe _a := B.b
 
 instance : Coe B A where
-  coe _ := A.a
+  coe _b := A.a
 
 instance : Coe Unit A where
-  coe _ := A.a
+  coe __ := A.a
 
+-- Unit -> A -> B
 def coercedToB : B := ()
 
-#eval coercedToB
+-- even in the presence of circular coercions the compiler finds a coercion
+#eval coercedToB                
 
 -- The Lean standard library defines a coercion from any type α to Option α that wraps the value in some. 
 
 def List.last? : List α → Option α
   | []       => none
-  | [x]      => x -- `some` not necessary
+  | [x]      => x                    -- `some` can be omitted
   | _ :: xs  => last? xs
 
 #eval List.last? ([] : List Nat)
@@ -132,21 +146,20 @@ def List.last? : List α → Option α
 #eval List.last? [1, 2]         
 #eval List.last? [1, 2, 3]      
 
--- these coercions can be chained
-def perhapsPerhapsPerhaps : Option (Option (Option String)) :=
-  "Please don't tell me"
+-- coercions can be chained
+def perhapsPerhapsPerhaps : Option (Option (Option String)) := "Please don't tell me"
 
-#eval perhapsPerhapsPerhaps
+#eval perhapsPerhapsPerhaps     
 
--- automatic coercions not used
+-- automatic coercions not used because Lean doesn't know the type of `392`
 def perhapsPerhapsPerhapsNat1 : Option (Option (Option Nat)) :=
-  392
+  392                           
 
 -- telling what type `392` is results in automatic coercion
 def perhapsPerhapsPerhapsNat2 : Option (Option (Option Nat)) :=
   (392 : Nat) 
 
--- explicit/manual coercion
+-- explicit/manual coercion (seldomly used)
 def perhapsPerhapsPerhapsNat3 : Option (Option (Option Nat)) :=
   ↑(392 : Nat)
 
@@ -165,6 +178,8 @@ instance : Coe (NonEmptyList α) (List α) where
 -- dependent coercion takes the value being coerced as a parameter
 class MyCoeDep (α : Type) (x : α) (β : Type) where
   coe : β
+
+#check CoeDep
 
 -- non-empty Lists can be coerced to a NonEmptyList
 instance : CoeDep (List α) (x :: xs) (NonEmptyList α) where
@@ -193,16 +208,23 @@ def listMonoid (α : Type) : Monoid :=
 
 def foldMap1 (M : Monoid) (f : α → M.Carrier) (xs : List α) : M.Carrier :=
   let rec go (soFar : M.Carrier) : List α → M.Carrier
-    | [] => soFar
-    | y :: ys => go (M.op soFar (f y)) ys
+    | []      => soFar
+    | y :: ys => go (M.op soFar $ f y) ys
   go M.neutral xs 
 
+#eval foldMap1 natMulMonoid (· + 1) [0, 1, 2, 3, 4]               
+#eval foldMap1 natMulMonoid (· + 1) [1, 2, 3, 4, 5]               
+#eval foldMap1 natAddMonoid (· + 1) [1, 2, 3, 4, 5]               
+#eval foldMap1 (listMonoid Nat) (fun x => [x + 1]) [1, 2, 3, 4, 5]
+
+-- The term `sort` in Lean refers to types that classify other types.
 -- The CoeSort class is just like the Coe class, with the exception that the target of the coercion must be a sort, namely Type or Prop.
 -- The term sort in Lean refers to these types that classify other types.
 instance : CoeSort Monoid Type where
   coe m := m.Carrier
 
--- with this coercion, the type signatures become less bureaucratic
+-- with this coercion the type signatures become less bureaucratic
+-- M.Carrier -> M
 def foldMap (M : Monoid) (f : α → M) (xs : List α) : M :=
   let rec go (soFar : M) : List α → M
     | [] => soFar
@@ -212,11 +234,10 @@ def foldMap (M : Monoid) (f : α → M) (xs : List α) : M :=
 -- Another useful example of CoeSort is used to bridge the gap between Bool and Prop.
 -- Lean's if expression expects the condition to be a decidable proposition rather than a Bool. 
 
--- CoeSort allows us to use bools in if expressions.
-
 instance : Coe Bool Prop where
   coe b := Eq b true
 
+-- CoeSort allows us to use bools in if expressions.
 instance : CoeSort Bool Prop where
   coe b := b
 
@@ -224,23 +245,31 @@ instance : CoeSort Bool Prop where
 /- Coercing to Functions -/
 /- --------------------- -/
 
+-- type class CoeFun can transform values from non-function types to function types
 class MyCoeFun (α : Type) (makeFunctionType : outParam (α → Type)) where
   coe : (x : α) → makeFunctionType x
+
+#check CoeFun 
+
+-- Adder --
 
 structure Adder where
   howMuch : Nat
 
 def add5 : Adder := ⟨5⟩
 
-#eval add5
+#eval add5    
 
--- Adder type is not a function
-#eval add5 3
+-- type Adder is not a function
+#eval add5 3  
 
-instance : CoeFun Adder (fun _ => Nat → Nat) where
+-- all Adders are transformed to Nat → Nat functions
+instance : CoeFun Adder (fun _adder => Nat → Nat) where
   coe a := (· + a.howMuch)
 
-#eval add5 3
+#eval add5 3  
+
+-- JSON --
 
 inductive JSON where
   | true   : JSON
@@ -262,14 +291,14 @@ def StrSerializer : JSONSerializer :=
     serialize := JSON.string
   }
 
--- JSON serializer as function
-instance : CoeFun JSONSerializer (fun s => s.Contents → JSON) where
+-- JSON serializer as a function
+instance : CoeFun JSONSerializer (fun serializer => serializer.Contents → JSON) where
   coe s := s.serialize
 
 def buildResponse (title : String) (R : JSONSerializer) (record : R.Contents) : JSON :=
   JSON.object [ ("title",  JSON.string title),
                 ("status", JSON.number 200),
-                ("record", R record)] -- a serializer can now be applied directly to an argument(!)
+                ("record", R record)] -- a serializer can now be applied directly to an argument
 
 #eval buildResponse "Functional Programming in Lean" StrSerializer "Programming is fun!"
 
@@ -277,7 +306,10 @@ def buildResponse (title : String) (R : JSONSerializer) (record : R.Contents) : 
 /- Aside: JSON as a String -/
 /- ----------------------- -/
 
-#eval (5 : Float).toString
+-- JSON doesn't distinguish between integers and floating point numbers, and the type Float is used to represent both.
+
+-- but Lean generates trailing zeros
+#eval (5 : Float).toString                   
 
 def dropDecimals (numString : String) : String :=
   if numString.contains '.' then
@@ -285,24 +317,24 @@ def dropDecimals (numString : String) : String :=
     (noTrailingZeros.dropEndWhile (· == '.')).copy
   else numString
 
-#eval dropDecimals (5   : Float).toString
-#eval dropDecimals (5.2 : Float).toString
+#eval dropDecimals (5   : Float).toString    
+#eval dropDecimals (5.2 : Float).toString    
 
 def String.separate (sep : String) (strings : List String) : String :=
   match strings with
   | []      => ""
-  | x :: xs => String.join (x :: xs.map (sep ++ ·))
+  | x :: xs => String.join $ x :: xs.map (sep ++ ·)
 
 #eval String.separate    ", " ["a", "b", "c"]
 #eval String.intercalate ", " ["a", "b", "c"]
 
-#eval ", ".separate []           
-#eval ", ".separate ["1"]        
-#eval ", ".separate ["1", "2"   ]
+#eval ", ".separate []                       
+#eval ", ".separate ["1"]                    
+#eval ", ".separate ["1", "2"   ]            
 
-#eval ", ".intercalate []        
-#eval ", ".intercalate ["1"]     
-#eval ", ".intercalate ["1", "2"]
+#eval ", ".intercalate []                    
+#eval ", ".intercalate ["1"]                 
+#eval ", ".intercalate ["1", "2"            ]
 
 -- `partial` because Lean cannot see that it terminates
 partial def JSON.asString (val : JSON) : String :=
@@ -315,6 +347,9 @@ partial def JSON.asString (val : JSON) : String :=
   | array elements => "[" ++ ", ".separate (elements.map asString) ++ "]"
   | object members => let memberToString mem := "\"" ++ Lean.Json.escape mem.fst ++ "\": " ++ asString mem.snd
                       "{" ++ ", ".separate (members.map memberToString) ++ "}"
+
+-- don't know what the effect of `escape` should really be
+#eval Lean.Json.escape "Hello!"
 
 #eval (buildResponse "Functional Programming in Lean" StrSerializer "Programming is fun!").asString
 
@@ -336,12 +371,12 @@ def perhapsPerhapsPerhapsNat : Option (Option (Option Nat)) := 392
 -- When a coercion is not applied for some reason, the user receives the original type error,
 -- which can make it difficult to debug chains of coercions.
 
--- with type annotations
+-- works because of the automatic coercion from non-empty lists to lists
+-- but needs type annotations
 def lastSpider1 : Option String :=
   List.getLast? idahoSpiders
 
-
--- without type annotations
+-- without type annotations we get an error
 def lastSpider2 :=
   List.getLast? idahoSpiders
 
