@@ -1,12 +1,15 @@
-/- -------------------- -/
-/- Numbering Tree Nodes -/
-/- -------------------- -/
+-- from previous chapters
 
 inductive BinTree (α : Type) where
   | leaf   : BinTree α
   | branch : BinTree α → α → BinTree α → BinTree α
 
-open BinTree in
+open BinTree
+
+/- -------------------- -/
+/- Numbering Tree Nodes -/
+/- -------------------- -/
+
 def aTree :=
   branch
     (branch
@@ -18,14 +21,19 @@ def aTree :=
 
 def number1 (t : BinTree α) : BinTree (Nat × α) :=
   let rec helper (n : Nat) : BinTree α → (Nat × BinTree (Nat × α))
-    | BinTree.leaf                => (n, BinTree.leaf)
-    | BinTree.branch left x right => let (k, numberedLeft)  := helper n left
-                                     let (i, numberedRight) := helper (k + 1) right
-                                     (i, BinTree.branch numberedLeft (k, x) numberedRight)
+    | leaf                => (n, leaf)
+    | branch left x right => let (k, numberedLeft)  := helper n left
+                             let (i, numberedRight) := helper (k + 1) right
+                             (i, branch numberedLeft (k, x) numberedRight)
   (helper 0 t).snd
 
+#eval number1 aTree
+
+-- State's result is a function type that takes an input state and returns a pair of an output state and a value
 def State (σ : Type) (α : Type) : Type :=
   σ → (σ × α)
+
+#check (State)     
   
 def ok (x : α) : State σ α :=
   fun s => (s, x)
@@ -36,23 +44,24 @@ def get : State σ σ :=
 def set (s : σ) : State σ Unit :=
   fun _ => (s, ())
 
-def andThen (first : State σ α) (next : α → State σ β) : State σ β :=
+def andThen (initial : State σ α) (next : α → State σ β) : State σ β :=
   fun s =>
-    let (s', x) := first s
+    let (s', x) := initial s
     next x s'
 
 infixl:55 " ~~> " => andThen
 
 def number (t : BinTree α) : BinTree (Nat × α) :=
   let rec helper : BinTree α → State Nat (BinTree (Nat × α))
-    | BinTree.leaf => ok BinTree.leaf
-    | BinTree.branch left x right =>
-      helper left ~~> fun numberedLeft =>
-      get ~~> fun n =>
-      set (n + 1) ~~> fun () =>
-      helper right ~~> fun numberedRight =>
-      ok (BinTree.branch numberedLeft (n, x) numberedRight)
+    | leaf                     => ok leaf
+    | branch left x right      => helper left  ~~> fun numberedLeft  =>
+                                  get          ~~> fun n             =>
+                                  set (n + 1)  ~~> fun ()            =>
+                                  helper right ~~> fun numberedRight =>
+                                  ok (branch numberedLeft (n, x) numberedRight)
   (helper t 0).snd
+
+#eval number aTree
 
 /- ----------------------------------- -/
 /- Monads: A Functional Design Pattern -/
