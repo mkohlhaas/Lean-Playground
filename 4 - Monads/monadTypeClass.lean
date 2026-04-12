@@ -1,10 +1,24 @@
+-- from previous chapters
+
+-- State's result is a function (type) that takes an input state and returns a pair of an output state and a value
+def State (σ : Type) (α : Type) : Type :=
+  σ → (σ × α)                             -- function from a starting state to a pair of a final state and a value
+
+def get : State σ σ :=
+  fun s => (s, s)
+
+def set (s : σ) : State σ Unit :=
+  fun _ => (s, ())
+
 /- -------------------- -/
 /- The Monad Type Class -/
 /- -------------------- -/
 
 class MyMonad (m : Type → Type) where
-  pure : α → m α
-  bind : m α → (α → m β) → m β
+  pure   : α → m α                  -- was ok      in the previous chapter
+  bind : m α → (α → m β) → m β    -- was andThen in the previous chapter
+
+#check Monad
 
 instance : Monad Option where
   pure x        := some x
@@ -35,11 +49,13 @@ def fastBirds   : List String := ["Peregrine falcon",
                                   "Gray-headed albatross",
                                   "Spur-winged goose",
                                   "Swift",
-                                  "Anna's hummingbird"
-                                 ]
+                                  "Anna's hummingbird"]
+
+def getOrOpt (xs : List α) (i : Nat) : Option α :=
+  xs[i]?
                               
-#eval firstThirdFifthSeventh (fun xs i => xs[i]?) slowMammals
-#eval firstThirdFifthSeventh (fun xs i => xs[i]?) fastBirds  
+#eval firstThirdFifthSeventh getOrOpt slowMammals   
+#eval firstThirdFifthSeventh getOrOpt fastBirds     
 
 def getOrExcept (xs : List α) (i : Nat) : Except String α :=
   match xs[i]? with
@@ -59,22 +75,13 @@ def mapM [Monad m] (f : α → m β) : List α → m (List β)
                mapM f xs >>= fun tl =>
                pure (hd :: tl)
 
+#check (State Int)
 
--- take an input state as an argument and return an output state together with a value
-def State (σ : Type) (α : Type) : Type :=
-  σ → (σ × α)
-
-def get : State σ σ :=
-  fun s => (s, s)
-
-def set (s : σ) : State σ Unit :=
-  fun _ => (s, ())
-
+-- State α, e.g. State Int is a monad
 instance : Monad (State σ) where
-  pure x          := fun s => (s, x)
-  bind first next := fun s =>
-                       let (s', x) := first s
-                       next x s'
+  pure x            := fun s => (s, x)
+  bind initial next := fun s => let (s', x) := initial s
+                                next x s'
 
 -- increment increases a saved state by a given amount, returning the old value
 def increment (howMuch : Int) : State Int Int :=
@@ -82,21 +89,29 @@ def increment (howMuch : Int) : State Int Int :=
   set (i + howMuch) >>= fun () =>
   pure i
 
--- `mapM increment` has type List Int → State Int (List Int),
--- and expanding the definition of State yields List Int → Int → (Int × List Int).
--- It takes an initial sum as an argument, which should be 0.
-#eval mapM increment [1, 2, 3, 4, 5] 0
+#check (increment)                     
+
+-- `mapM increment` has type List Int → State Int (List Int).
+-- Expanding the definition of State yields List Int → Int → (Int × List Int).
+-- It takes an initial sum/state as an argument, which should be 0.
+#check mapM increment                  
+#check mapM increment [1, 2, 3, 4, 5]  
+#check mapM increment [1, 2, 3, 4, 5] 0
+
+#eval  mapM increment [1, 2, 3, 4, 5] 0
 
 structure WithLog (logged : Type) (α : Type) where
   log : List logged
   val : α
+
+#check (WithLog)                       
   
 -- polymorphic with respect to the type of the logged data
 instance : Monad (WithLog logged) where
-  pure x           := {log := [], val := x}
-  bind result next := let {log := thisOut, val := thisRes} := result
-                      let {log := nextOut, val := nextRes} := next thisRes
-                      {log := thisOut ++ nextOut, val := nextRes}
+  pure x            := {log := [], val := x}
+  bind withLog next := let {log := thisOut, val := result}  := withLog
+                       let {log := nextOut, val := result'} := next result
+                       {log := thisOut ++ nextOut, val := result'}
 
 def isEven (i : Int) : Bool :=
   i % 2 == 0                   
@@ -106,14 +121,13 @@ def save (data : α) : WithLog α Unit :=
 
 -- logs even numbers and returns its argument unchanged
 def saveIfEven (i : Int) : WithLog Int Int :=
-  (if isEven i then
-    save i
-   else
-     pure ()) >>= fun () =>
-  pure i
+  (if isEven i
+    then save i
+    else pure ())
+  >>= fun () => pure i
 
 -- Using this function with mapM results in a log containing even numbers paired with an unchanged input list:
-#eval mapM saveIfEven [1, 2, 3, 4, 5]
+#eval mapM saveIfEven [1, 2, 3, 4, 5] 
 
 /- ------------------ -/
 /- The Identity Monad -/
@@ -123,18 +137,21 @@ def saveIfEven (i : Int) : WithLog Int Int :=
 -- It allows pure code to be used with monadic APIs.
 def MyId (t : Type) : Type := t
 
+#check (Id)
+
 -- results are of type Id x, but
 -- Id x == x
 instance : Monad Id where
   pure x   := x
   bind x f := f x
 
--- what monad is used here?
+-- Lean doesn't know which monad is used here.
 def numbers1 := mapM (do return · + 1) [1, 2, 3, 4, 5]
 
--- type hint needed for m (for Id mapM acts like map)
+-- type hint needed for m 
 def numbers2 := mapM (m := Id) (do return · + 1) [1, 2, 3, 4, 5]
 
+-- for Id mapM acts like map
 #eval numbers2
 
 /- ------------------ -/

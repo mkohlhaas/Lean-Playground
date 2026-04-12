@@ -29,7 +29,7 @@ def number1 (t : BinTree α) : BinTree (Nat × α) :=
 
 #eval number1 aTree
 
--- State's result is a function type that takes an input state and returns a pair of an output state and a value
+-- State's result is a function (type) that takes an input state and returns a pair of an output state and a value
 def State (σ : Type) (α : Type) : Type :=
   σ → (σ × α)
 
