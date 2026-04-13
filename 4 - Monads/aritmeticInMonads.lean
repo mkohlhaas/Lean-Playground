@@ -11,17 +11,21 @@
 inductive Expr (op : Type) where
   | const : Int → Expr op                     -- constant
   | prim  : op → Expr op → Expr op → Expr op  -- primitive binary operator
+deriving Repr
 
 inductive Arith where
   | plus
   | minus
   | times
   | div
+deriving Repr
 
 -- expression 2 + 3
 open Expr Arith
 def twoPlusThree : Expr Arith :=
   prim plus (const 2) (const 3)
+
+#eval twoPlusThree                        
 
 -- expression 14 / (45 - 5 * 9) == 14 / 0
 open Expr Arith
@@ -29,6 +33,8 @@ def fourteenDivided : Expr Arith :=
   prim div (const 14)
     (prim minus (const 45)
       (prim times (const 5) (const 9)))
+
+#eval fourteenDivided                     
 
 /- ---------------------- -/
 /- Evaluating Expressions -/
@@ -57,8 +63,8 @@ def evaluateOption2 : Expr Arith → Option Int
                          evaluateOption1 e2 >>= fun v2 =>
                          applyPrim2 p v1 v2                        
                          
-#eval evaluateOption1 fourteenDivided
-#eval evaluateOption1 twoPlusThree   
+#eval evaluateOption1 fourteenDivided       
+#eval evaluateOption1 twoPlusThree          
 
 def applyPrim : Arith → Int → Int → Except String Int
   | Arith.plus,  x, y => pure (x + y)
@@ -74,8 +80,8 @@ def evaluateExcept : Expr Arith → Except String Int
                          evaluateExcept e2 >>= fun v2 =>
                          applyPrim p v1 v2
 
-#eval evaluateExcept fourteenDivided
-#eval evaluateExcept twoPlusThree   
+#eval evaluateExcept fourteenDivided         
+#eval evaluateExcept twoPlusThree            
 
 def applyPrimOption : Arith → Int → Int → Option Int
   | Arith.plus,  x, y => pure (x + y)
