@@ -1,8 +1,39 @@
+-- from previous chapters
+
+-- ----- --
+-- State --
+-- ----- --
+
+def State (σ : Type) (α : Type) : Type :=
+  σ → (σ × α)
+
+def ok (x : α) : State σ α :=
+  fun s => (s, x)
+
+def get : State σ σ :=
+  fun s => (s, s)
+
+def set (s : σ) : State σ Unit :=
+  fun _ => (s, ())
+
+def andThen (first : State σ α) (next : α → State σ β) : State σ β :=
+  fun s =>
+    let (s', x) := first s
+    next x s'
+
+instance : Monad (State σ) where
+  pure x          := fun s => (s, x)
+  bind first next := fun s =>
+                       let (s', x) := first s
+                       next x s'
+
+infixl:55 " ~~> " => andThen
+
 /- ====================== -/
 /- do-Notation for Monads -/
 /- ====================== -/
 
-/- Translations -/
+/- Syntactic Sugar - Translations -/
 
 -- ---------------------- --
 -- 1. single expression E --
@@ -79,51 +110,28 @@ inductive BinTree (α : Type) where
   | leaf   : BinTree α
   | branch : BinTree α → α → BinTree α → BinTree α
 
-def State (σ : Type) (α : Type) : Type :=
-  σ → (σ × α)
-  
-def ok (x : α) : State σ α :=
-  fun s => (s, x)
-
-def get : State σ σ :=
-  fun s => (s, s)
-
-def set (s : σ) : State σ Unit :=
-  fun _ => (s, ())
-
-def andThen (first : State σ α) (next : α → State σ β) : State σ β :=
-  fun s =>
-    let (s', x) := first s
-    next x s'
-
-infixl:55 " ~~> " => andThen
-
+open BinTree in
 def number (t : BinTree α) : BinTree (Nat × α) :=
   let rec helper : BinTree α → State Nat (BinTree (Nat × α))
-    | BinTree.leaf                => ok BinTree.leaf
-    | BinTree.branch left x right => helper left ~~> fun numberedLeft =>
-                                     get ~~> fun n =>
-                                     set (n + 1) ~~> fun () =>
-                                     helper right ~~> fun numberedRight =>
-                                     ok (BinTree.branch numberedLeft (n, x) numberedRight)
+    | leaf                => ok leaf
+    | branch left x right => helper left  ~~> fun numberedLeft =>
+                             get          ~~> fun n =>
+                             set (n + 1)  ~~> fun () =>
+                             helper right ~~> fun numberedRight =>
+                             ok (branch numberedLeft (n, x) numberedRight)
   (helper t 0).snd
 
-instance : Monad (State σ) where
-  pure x          := fun s => (s, x)
-  bind first next := fun s =>
-                       let (s', x) := first s
-                       next x s'
-
 -- using do-notation
+open BinTree in
 def number' (t : BinTree α) : BinTree (Nat × α) :=
   let rec helper : BinTree α → State Nat (BinTree (Nat × α))
-    | BinTree.leaf                => pure BinTree.leaf
-    | BinTree.branch left x right => do
-                                       let numberedLeft ← helper left
-                                       let n ← get
-                                       set (n + 1)
-                                       let numberedRight ← helper right
-                                       ok (BinTree.branch numberedLeft (n, x) numberedRight)
+    | leaf                => pure BinTree.leaf
+    | branch left x right => do
+                             let numberedLeft ← helper left
+                             let n ← get
+                             set (n + 1)
+                             let numberedRight ← helper right
+                             ok (branch numberedLeft (n, x) numberedRight)
   (helper t 0).snd
 
 open BinTree in
@@ -144,17 +152,17 @@ def mapM [Monad m] (f : α → m β) : List α → m (List β)
   | []      => pure []
   | x :: xs => f x       >>= fun hd =>
                mapM f xs >>= fun tl =>
-               pure (hd :: tl)
+               pure $ hd :: tl
 
 -- with do-notation
 def mapM' [Monad m] (f : α → m β) : List α → m (List β)
   | []      => pure []
   | x :: xs => do
-                 let hd ← f x
-                 let tl ← mapM f xs
-                 pure (hd :: tl)
+               let hd ← f x
+               let tl ← mapM f xs
+               pure $ hd :: tl
 
--- with nested actions
+-- with nested actions (must be nested inside a `do` expression)
 def mapM'' [Monad m] (f : α → m β) : List α → m (List β)
   | []      => pure []
   | x :: xs => do pure ((← f x) :: (← mapM f xs))
@@ -168,25 +176,29 @@ def increment' (howMuch : Int) : State Int Int :=
 
 def increment : State Nat Nat := do
   let n ← get
-  set (n + 1)
+  set $ n + 1
   pure n
 
 -- with nested actions
+open BinTree in
 def number'' (t : BinTree α) : BinTree (Nat × α) :=
   let rec helper : BinTree α → State Nat (BinTree (Nat × α))
-    | BinTree.leaf                => pure BinTree.leaf
-    | BinTree.branch left x right => do
-                                     pure
-                                       (BinTree.branch
-                                         (← helper left)
-                                         ((← increment), x)
-                                         (← helper right))
+    | leaf                => pure leaf
+    | branch left x right => do
+                             pure
+                               (branch
+                                 (← helper left)
+                                 ((← increment), x)
+                                 (← helper right))
   (helper t 0).snd
 
 #eval number'' aTree
 
--- `mapM increment` has type List Int → State Int (List Int),
--- and expanding the definition of State yields List Int → Int → (Int × List Int).
+#check mapM increment'    
+#check mapM' increment'  
+#check mapM'' increment'
+
+-- Expanding the definition of State yields List Int → Int → (Int × List Int).
 -- It takes an initial sum as an argument, which should be 0.
 #eval mapM   increment' [1, 2, 3, 4, 5] 0
 #eval mapM'  increment' [1, 2, 3, 4, 5] 0
