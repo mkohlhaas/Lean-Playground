@@ -321,8 +321,8 @@ def Reader.bind (result : Reader ρ α) (next : α → Reader ρ β) : Reader ρ
   fun env => next (result env) env
 
 instance : Monad (Reader ρ) where
-  pure x   := fun _ => x
-  bind x f := fun env => f (x env) env
+  pure x   := Reader.pure x
+  bind x f := Reader.bind x f
   
 abbrev Env : Type := List (String × (Int → Int → Int))
 
@@ -335,10 +335,15 @@ def applyPrimReader (op : String) (x : Int) (y : Int) : Reader Env Int :=
                       | none   => pure 0
                       | some f => pure (f x y)
 
-#eval evaluateM'' applyPrimReader                            
+#eval evaluateM''' applyPrimReader                             
         (prim (other "max") (prim plus (const 5) (const 4))
           (prim times (const 3) (const 2)))
         exampleEnv
+
+-- Reader Env Int = Env -> Int
+#check evaluateM''' applyPrimReader                            
+        (prim (other "max") (prim plus (const 5) (const 4))
+          (prim times (const 3) (const 2)))
 
 /- --------- -/
 /- Exercises -/
