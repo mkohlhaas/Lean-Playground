@@ -129,14 +129,14 @@ def evaluateM' [Monad m] (applyDiv : Int → Int → m Int) : Expr Arith → m I
 /- Further Effects -/
 /- --------------- -/
 
-inductive Prim (special : Type) where
+inductive CanFail where
+  | div
+
+inductive Prim where
   | plus
   | minus
   | times
-  | other : special → Prim special
-
-inductive CanFail where
-  | div
+  | other : CanFail → Prim
 
 def divOption : CanFail → Int → Int → Option Int
   | CanFail.div, x, y => if y == 0
@@ -148,26 +148,26 @@ def divExcept : CanFail → Int → Int → Except String Int
                            then Except.error s!"Tried to divide {x} by zero"
                            else pure (x / y)
 
-def applyPrim'' [Monad m] (applySpecial : special → Int → Int → m Int) : Prim special → Int → Int → m Int
+def applyPrim'' [Monad m] (applyCanFail : CanFail → Int → Int → m Int) : Prim → Int → Int → m Int
   | Prim.plus,     x, y => pure (x + y)
   | Prim.minus,    x, y => pure (x - y)
   | Prim.times,    x, y => pure (x * y)
-  | Prim.other op, x, y => applySpecial op x y
+  | Prim.other op, x, y => applyCanFail op x y
 
-def evaluateM'' [Monad m] (applySpecial : special → Int → Int → m Int) : Expr (Prim special) → m Int
+def evaluateM'' [Monad m] (applyCanFail : CanFail → Int → Int → m Int) : Expr Prim → m Int
   | Expr.const i      => pure i
-  | Expr.prim p e1 e2 => evaluateM'' applySpecial e1 >>= fun v1 =>
-                         evaluateM'' applySpecial e2 >>= fun v2 =>
-                         applyPrim'' applySpecial p v1 v2
+  | Expr.prim p e1 e2 => evaluateM'' applyCanFail e1 >>= fun v1 =>
+                         evaluateM'' applyCanFail e2 >>= fun v2 =>
+                         applyPrim'' applyCanFail p v1 v2
 
 -- expression 2 + 3
 open Expr Prim CanFail
-def twoPlusThree' : Expr (Prim special) :=
+def twoPlusThree' : Expr Prim :=
   prim plus (const 2) (const 3)
 
 -- expression 14 / (45 - 5 * 9) == 14 / 0
 open Expr Prim CanFail
-def fourteenDivided' : Expr (Prim CanFail) :=
+def fourteenDivided' : Expr Prim :=
   prim (other div) (const 14)
     (prim minus (const 45)
       (prim times (const 5) (const 9)))
@@ -186,6 +186,29 @@ def fourteenDivided' : Expr (Prim CanFail) :=
 
 #check Empty
 
+inductive Prim' (special: Type) where
+  | plus
+  | minus
+  | times
+  | other : special → Prim' special
+
+inductive CanFail' where
+  | div
+
+-- Using Empty as the parameter to Prim indicates that there are no additional cases beyond Prim.plus, Prim.minus, and Prim.times,
+-- because it is impossible to come up with a value of type Empty to place in the Prim'.other constructor.
+def applyPrim''' [Monad m] (applySpecial : special → Int → Int → m Int) : Prim' special → Int → Int → m Int
+  | Prim'.plus,     x, y => pure (x + y)
+  | Prim'.minus,    x, y => pure (x - y)
+  | Prim'.times,    x, y => pure (x * y)
+  | Prim'.other op, x, y => applySpecial op x y
+
+def evaluateM''' [Monad m] (applySpecial : special → Int → Int → m Int) : Expr (Prim' special) → m Int
+  | Expr.const i      => pure i
+  | Expr.prim p e1 e2 => evaluateM''' applySpecial e1 >>= fun v1 =>
+                         evaluateM''' applySpecial e2 >>= fun v2 =>
+                         applyPrim''' applySpecial p v1 v2
+
 -- Using the syntax `nomatch E` when E is an expression whose type has no constructors
 -- indicates to Lean that the current expression need not return a result, because it
 -- could never have been called.
@@ -193,20 +216,21 @@ def applyEmpty [Monad m] (op : Empty) (_ : Int) (_ : Int) : m Int :=
   nomatch op
 
 -- together with the identity monad Id this can be used to evaluate expressions that have no effects whatsoever
-#eval evaluateM'' (m := Id) applyEmpty $ prim plus (const 5) (const (-14))
+#eval evaluateM''' (m := Id) applyEmpty $ prim Prim'.plus (const 5) (const (-14))
 
 /- ----------------------- -/
 /- Nondeterministic Search -/
 /- ----------------------- -/
 
 inductive Many (α : Type) where
-  | none : Many α
-  | more : α → (Unit → Many α) → Many α
+  | none : Many α                          -- no   answer (like list's nil)
+  | more : α → (Unit → Many α) → Many α    -- more answers; function ´Unit → Many α´ calculates next value; more is like list's cons function
 
+-- store x in list like structure; no next value
 def Many.one (x : α) : Many α := Many.more x (fun () => Many.none)
 
 def Many.union : Many α → Many α → Many α
-  | Many.none, ys      => ys
+  | Many.none, ys     => ys
   | Many.more x f, ys => Many.more x (fun () => union (f ()) ys)
 
 def Many.fromList : List α → Many α
@@ -224,7 +248,7 @@ def Many.takeAll : Many α → List α
 
 def Many.bind : Many α → (α → Many β) → Many β
   | Many.none, _     => Many.none
-  | Many.more x f, g => (g x).union (bind (f ()) g)
+  | Many.more x f, g => (g x).union $ bind (f ()) g
 
 instance : Monad Many where
   pure := Many.one
@@ -232,14 +256,14 @@ instance : Monad Many where
 
 -- finds all the combinations of numbers in a list that add to goal
 def addsTo (goal : Nat) : List Nat → Many (List Nat)
-  | [] => if goal == 0
-            then pure []
-            else Many.none
+  | []      => if goal == 0
+                 then pure []
+                 else Many.none
   | x :: xs => if x > goal
                  then addsTo goal xs
                  else (addsTo goal xs).union
                         (addsTo (goal - x) xs >>= fun answer =>
-                            pure (x :: answer))
+                            pure $ x :: answer)
 
 def printList [ToString α] : List α → IO Unit
   | []      => pure ()
@@ -259,20 +283,19 @@ def applySearch : NeedsSearch → Int → Int → Many Int
                                   then Many.none
                                   else Many.one (x / y)
 
-open Expr Prim NeedsSearch
-#eval (evaluateM'' applySearch                                
+open Expr Prim' NeedsSearch
+#eval (evaluateM''' applySearch                                
         (prim plus (const 1)
-          (prim (other choose) (const 2)
-            (const 5)))).takeAll
+          (prim (other choose) (const 2) (const 5)))).takeAll
 
-#eval (evaluateM'' applySearch                                
+#eval (evaluateM''' applySearch                                
         (prim plus (const 1)
-          (prim (other div) (const 2)
-            (const 0)))).takeAll
+          (prim (other div) (const 2) (const 0)))).takeAll
 
-#eval (evaluateM'' applySearch                                
+#eval (evaluateM''' applySearch                                
         (prim (other div) (const 90)
-          (prim plus (prim (other choose) (const (-5)) (const 5))
+          (prim plus
+            (prim (other choose) (const (-5)) (const 5))
             (const 5)))).takeAll
 
 /- ------------------- -/
