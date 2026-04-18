@@ -10,23 +10,23 @@
 -- The whole point of the universe system is to rule out self-referential types. 
 
 -- the type of Prop is Type
-#check Prop
+#check Prop                                     
 
-#check Type  
-#check Type 1
-#check Type 2
-#check Type 3
+#check Type                                     
+#check Type 1                                   
+#check Type 2                                   
+#check Type 3                                   
 -- …
 
 -- Function types occupy the smallest universe that can contain both the argument type and the return type. 
-#check Nat → Nat      
-#check Type → Type    
-#check Type 1 → Type 2
+#check Nat → Nat                                
+#check Type → Type                              
+#check Type 1 → Type 2                          
 
 -- There is one exception to this rule.
 -- If the return type of a function is a Prop, then the whole function type is in Prop.
-#check (n : Nat) → n = n + 0
-#check Type → 2 + 2 = 4     
+#check (n : Nat) → n = n + 0                    
+#check Type → 2 + 2 = 4                         
 
 /- ------------------ -/
 /- User Defined Types -/
@@ -40,12 +40,12 @@ inductive MyList (α : Type) : Type where
 #check MyList
 
 -- it cannot be used to contain actual types
-def myListOfNat : MyList Type := .cons Nat .nil
+def myListOfNat : MyList Type := .cons Nat .nil 
 
 -- the argument to cons with type α is from a larger universe than MyList
 inductive MyList' (α : Type 1) : Type where
   | nil  : MyList' α
-  | cons : α → MyList' α → MyList' α
+  | cons : α → MyList' α → MyList' α            
 
 -- The specific rules that govern whether a datatype is allowed are somewhat complicated.
 -- Generally speaking, it's easiest to start with the datatype in the same universe as the largest of its arguments.
@@ -67,7 +67,7 @@ def myListOfNat'    : MyList'' Type          := .cons Nat .nil
 def myListOfList    : MyList'' (Type → Type) := .cons MyList'' .nil
 
 -- level arguments are written with a dot and curly braces
-#check MyList.{0}
+#check MyList.{0}                               
 
 def myListOfNumbers' : MyList''.{0} Nat           := .cons 0 (.cons 1 .nil)
 def myListOfNat''    : MyList''.{1} Type          := .cons Nat .nil
@@ -79,7 +79,8 @@ inductive MySum (α : Type u) (β : Type u) : Type u where
 
 def stringOrNat  : MySum String Nat  := .inl "hello"
 def typeOrType   : MySum Type Type   := .inr Nat
-def stringOrType : MySum String Type := .inr Nat -- both arguments must be in the same universe
+-- both arguments must be in the same universe
+def stringOrType : MySum String Type := .inr Nat
 
 inductive MySum' (α : Type u) (β : Type v) : Type (max u v) where
   | inl : α → MySum' α β

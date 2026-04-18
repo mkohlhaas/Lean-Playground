@@ -12,7 +12,7 @@
 
 -- The type class Applicative provides the overloadable operations of applicative functors.
 
--- The monad abstraction is more powerful than the applicative functor abstraction.
+-- The monad               abstraction is more powerful than the applicative functor abstraction.
 -- The applicative functor abstraction is more powerful than the functor abstraction.
 
 -- Every monad is an applicative functor.
@@ -28,12 +28,12 @@ structure MythicalCreature where
 deriving Repr
 
 -- creates an inductive type with a single constructor called mk
-#check MythicalCreature.mk
-#print MythicalCreature.mk
+#check MythicalCreature.mk                                  
+#print MythicalCreature.mk                                  
 
 -- a function .large is created that extracts the field from the constructor
-#check MythicalCreature.large
-#print MythicalCreature.large
+#check MythicalCreature.large                               
+#print MythicalCreature.large                               
 
 structure Monster extends MythicalCreature where
   vulnerability : String
@@ -45,23 +45,23 @@ def troll : Monster where
 
 -- Inheritance is implemented using composition.
 -- The constructor Monster.mk takes a MythicalCreature as its argument.
-#check Monster.mk
-#print Monster.mk
+#check Monster.mk                                           
+#print Monster.mk                                           
 
 -- a function is created to extract the underlying creature
-#check Monster.toMythicalCreature 
-#print Monster.toMythicalCreature 
+#check Monster.toMythicalCreature                           
+#print Monster.toMythicalCreature                           
 
-#print Monster
+#print Monster                                              
 
 -- In Lean moving up the inheritance hierarchy erases the underlying information!
-#eval troll.toMythicalCreature
+#eval troll.toMythicalCreature                              
 
 -- curly-brace notation works with structure inheritance
 def troll1 : Monster := {large := true, vulnerability := "sunlight"}
 
 -- anonymous angle-bracket notation that delegates to the underlying constructor reveals the internal details
-def troll2 : Monster := ⟨true, "sunlight"⟩
+def troll2 : Monster := ⟨true, "sunlight"⟩                  
 
 -- An extra set of angle brackets is required
 def troll3 : Monster := ⟨⟨true⟩, "sunlight"⟩
@@ -71,16 +71,16 @@ def troll3 : Monster := ⟨⟨true⟩, "sunlight"⟩
 -- before the call to MythicalCreature.large.
 
 -- But: field lookup function using normal function call syntax results in a type error
-#eval MythicalCreature.large troll
+#eval MythicalCreature.large troll                          
 
 def MythicalCreature.small (c : MythicalCreature) : Bool := !c.large
 
 -- Dot notation can also take inheritance into account for user-defined functions.
 
-#eval troll.small
+#eval troll.small                                           
 
 -- but this results in an error
-#eval MythicalCreature.small troll
+#eval MythicalCreature.small troll                          
 
 /- -------------------- -/
 /- Multiple Inheritance -/
@@ -110,13 +110,13 @@ def domesticatedTroll : MonstrousAssistant where
 --                  than having the new structure include both parents directly.
 
 -- see resolution order
-#print MonstrousAssistant
+#print MonstrousAssistant                                  
 
-#check MonstrousAssistant.mk
-#print MonstrousAssistant.mk
+#check MonstrousAssistant.mk                               
+#print MonstrousAssistant.mk                               
 
 #print MonstrousAssistant.toMonster -- extracts the Monster
-#print MonstrousAssistant.toHelper  -- creates an Helper
+#print MonstrousAssistant.toHelper  -- creates an Helper   
 
 /- -------------------- -/
 /- Default Declarations -/
@@ -139,13 +139,13 @@ def nonsenseCreature : SizedCreature where
   large := false
   size  := .large
   
-#check smallCreature
-#eval  smallCreature
-#print smallCreature
+#check smallCreature                                      
+#eval  smallCreature                                      
+#print smallCreature                                      
 
-#check nonsenseCreature
-#eval  nonsenseCreature
-#print nonsenseCreature
+#check nonsenseCreature                                   
+#eval  nonsenseCreature                                   
+#print nonsenseCreature                                   
 
 -- TODO: not clear
 

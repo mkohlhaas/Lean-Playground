@@ -24,23 +24,23 @@ class Plus (α : Type) where
 instance : Plus Nat where
   plus := Nat.add 
 
-#check some Plus.plus                      
-#check some Plus.plus <*> some 4           
-#check some Plus.plus <*> some 4 <*> some 7
+#check some Plus.plus                                 
+#check some Plus.plus <*> some 4                      
+#check some Plus.plus <*> some 4 <*> some 7           
 
 structure Pair (α β : Type) : Type where
   first  : α
   second : β
 
-#check Pair
-#print Pair
+#check Pair                                           
+#print Pair                                           
 
 instance : Functor (Pair α) where
   map f x := ⟨x.first, f x.second⟩
 
 #eval id <$> Pair.mk 1 2
 
-def Pair.pure1 (x : β) : Pair α β := _
+def Pair.pure1 (x : β) : Pair α β := _          
 
 -- we have no α -> we cannot define a pure function for Applicative
 def Pair.pure2 (x : β) : Pair α β := Pair.mk _ x
