@@ -5,17 +5,16 @@
 /- --------------------- -/
 /- Shared Argument Types -/
 /- --------------------- -/
+
 def equal? [BEq α] (x : α) (y : α) : Option α :=
-  if x == y then
-    some x
-  else
-    none
+  if x == y
+    then some x
+    else none
 
 def equal?' [BEq α] (x y : α) : Option α :=
-  if x == y then
-    some x
-  else
-    none
+  if x == y
+    then some x
+    else none
 
 /- -------------------- -/
 /- Leading Dot Notation -/
@@ -75,23 +74,30 @@ def Weekday.isWeekend''' : Weekday → Bool
   | .saturday | .sunday => true
   | _                   => false
 
+-- NOTE: behind the scenes, the result expression is simply duplicated across each pattern
 def condense : α ⊕ α → α
   | .inl x | .inr x => x
 
 def stringy : Nat ⊕ Weekday → String
   | .inl x | .inr x => s!"It is {repr x}"
 
--- TODO
--- #eval stringy ((0 : Nat), Weekday.monday)
+#eval stringy $ .inl 0             
+#eval stringy $ .inr Weekday.monday
 
 def getTheNat : (Nat × α) ⊕ (Nat × β) → Nat
   | .inl (n, _x) | .inr (n, _y) => n
 
 -- there is no x available in the second pattern
 def getTheAlpha : (Nat × α) ⊕ (Nat × α) → α
-  | .inl (n, x) | .inr (n, y) => x
+  | .inl (_n, x) | .inr (_n, y) => x
 
--- The fact that the result expression is essentially copy-pasted to each branch of the pattern match can lead to some surprising behavior.
+def getTheAlpha' : (Nat × α) ⊕ (Nat × α) → α
+  | .inl (_n, x) | .inr (_n, x) => x
+
+#eval getTheAlpha' $ .inl (5, "Hello")
+#eval getTheAlpha' $ .inr (5, "Hello")
+
+-- NOTE: The fact that the result expression is essentially copy-pasted to each branch of the pattern match can lead to some surprising behavior!
 def str := "Some string"
 
 def getTheString : (Nat × String) ⊕ (Nat × β) → String
@@ -101,4 +107,4 @@ def getTheString : (Nat × String) ⊕ (Nat × β) → String
 #eval getTheString (.inl (20, "twenty") : (Nat × String) ⊕ (Nat × String))
 
 -- global str is used
-#eval getTheString (.inr (20, "twenty"))
+#eval getTheString (.inr (20, "twenty"))                                  
