@@ -4,11 +4,16 @@
 
 -- Functor and Monad both describe operations for types that are still waiting for a type argument.
 
+#print Functor
+#print Monad  
+
 -- Functor describes containers in which the contained data can be transformed.
 -- Monad   describes an encoding of programs with side effects.
 
--- Option has instances for both Functor and Monad
+-- Option has instances for both Functor and Monad.
 -- Option represents an optional value and a computation that might fail to return a value.
+
+#print Option 
 
 -- The type class Applicative provides the overloadable operations of applicative functors.
 
@@ -28,12 +33,16 @@ structure MythicalCreature where
 deriving Repr
 
 -- creates an inductive type with a single constructor called mk
-#check MythicalCreature.mk                                  
 #print MythicalCreature.mk                                  
+#print MythicalCreature                                     
 
 -- a function .large is created that extracts the field from the constructor
-#check MythicalCreature.large                               
 #print MythicalCreature.large                               
+
+def mc := { large := true : MythicalCreature }
+
+#eval mc.large                                              
+#eval MythicalCreature.large mc                             
 
 structure Monster extends MythicalCreature where
   vulnerability : String
@@ -45,17 +54,15 @@ def troll : Monster where
 
 -- Inheritance is implemented using composition.
 -- The constructor Monster.mk takes a MythicalCreature as its argument.
-#check Monster.mk                                           
 #print Monster.mk                                           
 
 -- a function is created to extract the underlying creature
-#check Monster.toMythicalCreature                           
+#print Monster                                              
 #print Monster.toMythicalCreature                           
 
-#print Monster                                              
-
 -- In Lean moving up the inheritance hierarchy erases the underlying information!
-#eval troll.toMythicalCreature                              
+#eval  troll.toMythicalCreature                             
+#check troll.toMythicalCreature                             
 
 -- curly-brace notation works with structure inheritance
 def troll1 : Monster := {large := true, vulnerability := "sunlight"}
@@ -70,16 +77,17 @@ def troll3 : Monster := ⟨⟨true⟩, "sunlight"⟩
 -- and Lean automatically inserts the call to Monster.toMythicalCreature
 -- before the call to MythicalCreature.large.
 
--- But: field lookup function using normal function call syntax results in a type error
+#eval troll.large                                           
+
+-- This only occurs when using dot notation, and applying the field lookup function using normal function call syntax results in a type error.
 #eval MythicalCreature.large troll                          
 
+-- dot notation can also take inheritance into account for user-defined functions
 def MythicalCreature.small (c : MythicalCreature) : Bool := !c.large
-
--- Dot notation can also take inheritance into account for user-defined functions.
 
 #eval troll.small                                           
 
--- but this results in an error
+-- but this again results in an error
 #eval MythicalCreature.small troll                          
 
 /- -------------------- -/
@@ -91,6 +99,7 @@ structure Helper extends MythicalCreature where
   payment    : String
 deriving Repr
 
+-- just an example for a helper (not used in the examples)
 def nisse : Helper where
   large      := false
   assistance := "household tasks"
@@ -112,9 +121,9 @@ def domesticatedTroll : MonstrousAssistant where
 -- see resolution order
 #print MonstrousAssistant                                  
 
-#check MonstrousAssistant.mk                               
 #print MonstrousAssistant.mk                               
 
+-- NOTE: the @[reducible] attribute has the same effect as writing `abbrev`
 #print MonstrousAssistant.toMonster -- extracts the Monster
 #print MonstrousAssistant.toHelper  -- creates an Helper   
 
@@ -126,18 +135,21 @@ inductive Size where
   | small
   | medium
   | large
-deriving Repr, BEq
+deriving BEq, Repr
 
+-- the default definitions in the child structure are only used when no specific value for `large` is provided
 structure SizedCreature extends MythicalCreature where
   size  : Size
   large := size == Size.large
 
+#print SizedCreature
+
 def smallCreature : SizedCreature where
-  size := Size.small
+  size := .small
   
 def nonsenseCreature : SizedCreature where
-  large := false
   size  := .large
+  large := false
   
 #check smallCreature                                      
 #eval  smallCreature                                      
@@ -147,19 +159,20 @@ def nonsenseCreature : SizedCreature where
 #eval  nonsenseCreature                                   
 #print nonsenseCreature                                   
 
--- TODO: not clear
+-- If the child structure should not deviate from the parent structure, one could define
+-- a proposition that the fields are related appropriately,
+-- and designing the API to require evidence that the proposition is true where it matters.
 
--- If the child structure should not deviate from the parent structure, there are a few options. One of them is:
--- Defining a proposition that the fields are related appropriately, and designing the API to require evidence that the proposition is true where it matters.
-
+-- abbrev is used because it should automatically be unfolded in proofs
 abbrev SizesMatch (sc : SizedCreature) : Prop :=
   sc.large = (sc.size == Size.large)
 
 def huldre : SizedCreature where
-  size := .medium
+  size  := .medium
 
-example : SizesMatch huldre := by
-  decide
+example : SizesMatch huldre           := by decide
+example : SizesMatch smallCreature    := by decide
+example : SizesMatch nonsenseCreature := by decide
 
 /- ---------------------- -/
 /- Type Class Inheritance -/
@@ -170,4 +183,3 @@ example : SizesMatch huldre := by
 
 -- Because it uses precisely the same language features, type class inheritance supports all the features of structure inheritance,
 -- including multiple inheritance, default implementations of parent types' methods, and automatic collapsing of diamonds.
-
