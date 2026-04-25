@@ -2,6 +2,8 @@
 /- The Complete Definitions -/
 /- ======================== -/
 
+-- with universe polymorphism
+
 /- ------- -/
 /- Functor -/
 /- ------- -/
@@ -69,6 +71,14 @@ class MyMonad (m : Type u → Type v) : Type (max (u+1) v) extends Applicative m
   seqRight x y := bind x fun _ => y ()
 
 #check Monad
+
+-- Monad instance requires only implementations of bind and pure.
+
+-- Monad instances automatically yield implementations of seq, seqLeft,
+-- seqRight, map, and mapConst.
+
+-- Any type with a Monad instance gets instances for Bind (do-notation), Pure,
+-- Seq (<*>), Functor (<$>), SeqLeft (<*), and SeqRight (*>).
 
 /- --------- -/
 /- Exercises -/

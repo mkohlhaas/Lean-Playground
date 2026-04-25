@@ -136,9 +136,9 @@ def stringOrType' : MySum' String Type := .inr Nat
 
 -- Guidelines:
 -- · independent type arguments should have different universe variables
--- · the whole type is itself typically either in the maximum of all the universe variables `(max u v)` or
--- · one greater than this maximum `(max u v) + 1`
---   · try the smaller first
+-- · the whole type is itself typically either in the maximum of all the universe variables `max u v` or
+-- · one greater than this maximum `max (u + 1) v`
+--   · try the smaller one first
 -- · Non-polymorphic types, such as Nat and String, can be placed directly in Type 0 (= Type)
 
 /- --------------------- -/
