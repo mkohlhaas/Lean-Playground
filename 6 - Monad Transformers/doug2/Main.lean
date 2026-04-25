@@ -18,6 +18,8 @@ def usage : String :=
 Options:
 \t--ascii\tUse ASCII characters to display the directory structure"
 
+#eval IO.println usage
+
 def configFromArgs : List String → Option Config
   | []          => some {} -- both fields default
   | ["--ascii"] => some {useASCII := true}
@@ -26,19 +28,43 @@ def configFromArgs : List String → Option Config
 inductive Entry where
   | file : String → Entry
   | dir  : String → Entry
+deriving Repr
 
 def toEntry (path : System.FilePath) : IO (Option Entry) := do
   match path.components.getLast? with
-  | none                 => pure (some (.dir ""))
+  | none                 => pure $ some $ .dir "" -- should never happen
   | some "." | some ".." => pure none
-  | some name            => pure (some (if (← path.isDir) then .dir name else .file name))
+  | some name            => pure $ some (if (← path.isDir)
+                                           then .dir name
+                                           else .file name)
 
-def dirLT (e1 : IO.FS.DirEntry) (e2 : IO.FS.DirEntry) : Bool := e1.fileName < e2.fileName
+def usrLocalShare1 : System.FilePath := "/usr/local/share"
+def usrLocalShare2 : System.FilePath := "/usr/local/share/"
+def rootDirectory  : System.FilePath := "/"
+ 
+#eval usrLocalShare1                     
+#eval usrLocalShare1.components          
+#eval usrLocalShare1.components.getLast? 
 
-def Config.preFile (cfg : Config) :=
+#eval usrLocalShare2                     
+#eval usrLocalShare2.components          
+#eval usrLocalShare2.components.getLast? 
+
+#eval rootDirectory                      
+#eval rootDirectory.components           
+#eval rootDirectory.components.getLast?  
+
+#eval toEntry usrLocalShare1
+#eval toEntry usrLocalShare2
+#eval toEntry rootDirectory 
+
+def dirLT (e1 : IO.FS.DirEntry) (e2 : IO.FS.DirEntry) : Bool :=
+  e1.fileName < e2.fileName
+
+def Config.preFile (cfg : Config) : String :=
   if cfg.useASCII then "|--" else "├──"
 
-def Config.preDir (cfg : Config) :=
+def Config.preDir (cfg : Config) : String :=
   if cfg.useASCII then "|  " else "│  "
 
 def Config.fileName (cfg : Config) (file : String) : String :=
@@ -57,16 +83,14 @@ def showDirName (cfg : Config) (dir : String) : IO Unit :=
   do IO.println (cfg.dirName dir)
 
 def doList [Applicative f] : List α → (α → f Unit) → f Unit
-  | [], _ => pure ()
-  | x :: xs, action =>
-    action x *>
-    doList xs action
+  | [], _           => pure ()
+  | x :: xs, action => action x *> doList xs action
 
 partial def dirTree (cfg : Config) (path : System.FilePath) : IO Unit := do
   match ← toEntry path with
   | none              => pure ()
-  | some (.file name) => showFileName cfg name
-  | some (.dir name)  => showDirName cfg name
+  | some $ .file name => showFileName cfg name
+  | some $ .dir name  => showDirName  cfg name
                          let contents ← path.readDir
                          let newConfig := cfg.inDirectory
                          doList (contents.qsort dirLT).toList fun d =>
