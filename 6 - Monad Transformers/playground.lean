@@ -19,6 +19,14 @@ instance [Monad m] : Monad (ReaderT ρ m) where
                                   let v ← result env
                                   next v env
 
+-- When Lean encounters a mismatch in monad types, it automatically attempts to
+-- use a type class called MonadLift to transform the actual monad into the
+-- expected monad. This process is similar to the use of coercions.
+
+-- The method monadLift translates from the monad m to the monad n. The process is
+-- called "lifting" because it takes an action in the embedded monad and makes it
+-- into an action in the surrounding monad.
+
 class MyMonadLift (m : Type u → Type v) (n : Type u → Type w) where
   monadLift : {α : Type u} → m α → n α
 
