@@ -4,3 +4,5 @@ File Order:
  - 0 doug3/Main.lean
  - 0 playground.lean
  - 0 monadConstructionKit.lean
+ - 0 orderingMonadTransformers.lean
+ - 0 moreDoFeatures.lean

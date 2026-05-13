@@ -134,3 +134,153 @@ instance [Monad m] : MonadLift m (ExceptT ε m) where
 -- Type Classes for Exceptions --
 -- --------------------------- --
 
+class MyMonadExcept (ε : outParam (Type u)) (m : Type v → Type w) where
+  throw    : ε → m α
+  tryCatch : m α → (ε → m α) → m α
+
+#print MonadExcept
+
+inductive Err where
+  | divByZero
+  | notANumber : String → Err
+
+def divBackend [Monad m] [MonadExcept Err m] (n k : Int) : m Int :=
+  if k == 0
+    then throw .divByZero
+    else pure $ n / k
+
+def asNumber [Monad m] [MonadExcept Err m] (s : String) : m Int :=
+  match s.toInt? with
+  | none   => throw $ .notANumber s
+  | some i => pure i
+
+def divFrontend' [Monad m] [MonadExcept Err m] (n k : String) : m String :=
+  tryCatch (do pure $ toString $ ← divBackend (← asNumber n) (← asNumber k))
+           fun
+             | .divByZero    => pure "Division by zero!"
+             | .notANumber s => pure s!"Not a number: \"{s}\""
+
+--  Special syntax:
+-- `try` and `catch` can be used as shorthand for `tryCatch`
+
+def divFrontend [Monad m] [MonadExcept Err m] (n k : String) : m String :=
+  try
+    pure $ toString $ ← divBackend (← asNumber n) (← asNumber k)
+  catch
+    | .divByZero    => pure "Division by zero!"
+    | .notANumber s => pure s!"Not a number: \"{s}\""
+
+-- There are useful MonadExcept instances for other types that may not seem
+-- like exceptions at first glance. For example, failure due to Option can be
+-- seen as throwing an exception that contains no data whatsoever, so there is
+-- an instance of `MonadExcept Unit Option` that allows try ...catch ... syntax
+-- to be used with Option.
+
+-- TODO: example for divFrontend
+-- #eval divFrontend "55" "5"
+
+-- ----- --
+-- State --
+-- ----- --
+
+def MyStateT (σ : Type u) (m : Type u → Type v) (α : Type u) : Type (max u v) := σ → m (α × σ)
+
+#print StateT 
+
+instance [Monad m] : Monad (StateT σ m) where
+  pure x           := fun s => pure (x, s)
+  bind result next := fun s => do
+                               let (v, s') ← result s
+                               next v s'
+
+-- counting the number of diacritic-free English vowels and consonants in a string of letters
+
+structure LetterCounts where
+  vowels     : Nat
+  consonants : Nat
+deriving Repr
+
+inductive Err1 where
+  | notALetter : Char → Err1
+deriving Repr
+
+def vowels :=
+  let lowerVowels := "aeiuoy"
+  lowerVowels ++ lowerVowels.map (·.toUpper)
+
+def consonants :=
+  let lowerConsonants := "bcdfghjklmnpqrstvwxz"
+  lowerConsonants ++ lowerConsonants.map (·.toUpper )
+
+#eval vowels    
+#eval consonants
+
+def countLetters' (str : String) : StateT LetterCounts (Except Err1) Unit :=
+  let rec loop (chars : List Char) := do
+    match chars with
+    | []      => pure ()
+    | c :: cs => let st  ← get                                         
+                 let st' ← if c.isAlpha then                                                                               
+                             if vowels.contains c then                         
+                               pure {st with vowels := st.vowels + 1}          
+                             else if consonants.contains c then                
+                               pure {st with consonants := st.consonants + 1}  
+                             else -- modified or non-English letter            
+                               pure st                                         
+                           else throw $ .notALetter c                          
+                 set st' -- could be easily wrongly written as `set st`
+                 loop cs                                              
+  loop str.toList
+
+#eval "hello".toList
+
+#eval countLetters' "hello"  ⟨0, 0⟩
+#eval countLetters' "hello!" ⟨0, 0⟩
+
+-- NOTE: better to use `modify` (instead of `get` and `set`)
+def countLetters (str : String) : StateT LetterCounts (Except Err1) Unit :=
+  let rec loop (chars : List Char) := do
+    match chars with
+    | []      => pure ()
+    | c :: cs => if c.isAlpha then                                              
+                   if vowels.contains c then                                    
+                     modify fun st => {st with vowels := st.vowels + 1}         
+                   else if consonants.contains c then                           
+                     modify fun st => {st with consonants := st.consonants + 1} 
+                   else -- modified or non-English letter                       
+                     pure ()                                                    
+                 else throw $ .notALetter c                                     
+                 loop cs
+  loop str.toList
+
+#eval countLetters "hello"  ⟨0, 0⟩
+#eval countLetters "hello!" ⟨0, 0⟩
+
+
+class MyMonadState (σ : outParam (Type u)) (m : Type u → Type v) : Type (max (u+1) v) where
+  get           : m σ
+  set           : σ → m PUnit
+  modifyGet : (σ → α × σ) → m α
+
+def myModify [MonadState σ m] (f : σ → σ) : m Unit :=
+  modifyGet fun s => ((), f s)
+
+-- PUnit is a version of the Unit type that is universe-polymorphic to allow it to be in Type u instead of Type.
+#print modify
+
+-- ---------------------------- --
+-- Of Classes and The Functions --
+-- ---------------------------- --
+
+-- https://lean-lang.org/functional_programming_in_lean/Monad-Transformers/A-Monad-Construction-Kit/#of-and-the
+
+-- ------------------- --
+-- Transformers and Id --
+-- ------------------- --
+
+-- The identity monad Id is the monad that has no effects whatsoever, to be used
+-- in contexts that expect a monad for some reason but where none is actually
+-- necessary.
+
+-- Another use of Id is to serve as the bottom of a stack of monad
+-- transformers. For instance, `StateT σ Id` works just like `State σ`.
