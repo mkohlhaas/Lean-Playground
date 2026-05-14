@@ -67,8 +67,8 @@ def add1_1  n              := n + 1
 def add1_2 (n : Nat) : Nat := n + 1
 
 -- NOTE: a little trick!!!
-#check  add1_1 
-#check (add1_1)
+#check  add1_1                                              
+#check (add1_1)                                             
 
 #eval add1_1 5                                              
 #eval add1_1 7                                              
@@ -86,11 +86,11 @@ def maximum2 (n : Nat) (k : Nat) : Nat :=
     then k
     else n 
 
-#check (maximum2)             
+#check (maximum2)                                           
 
-#eval maximum2 2 5            
-#eval maximum2 5 2            
-#eval maximum2 (5 + 8) (2 * 7)
+#eval maximum2 2 5                                          
+#eval maximum2 5 2                                          
+#eval maximum2 (5 + 8) (2 * 7)                              
 
 def spaceBetween'  before after :=
   String.append before (String.append " " after)
@@ -102,9 +102,9 @@ def spaceBetween (before : String) (after : String) : String :=
   String.append before (String.append " " after)
   
 -- currying
-#check (spaceBetween)                                          
-#check (spaceBetween "")                                    
-#check (spaceBetween "" "")                              
+#check (spaceBetween)                                             
+#check (spaceBetween "")                                       
+#check (spaceBetween "" "")                                 
 
 -- Function arrows associate to the right, which means that Nat → Nat → Nat should be parenthesized Nat → (Nat → Nat).
 
@@ -116,22 +116,22 @@ def spaceBetween (before : String) (after : String) : String :=
 
 def joinStringsWith sep before after := String.append before (String.append sep after)
 
-#eval joinStringsWith ", " "one" "and another"           
+#eval joinStringsWith ", " "one" "and another"              
 
-#check (joinStringsWith)                                                  
-#check (joinStringsWith ", ")                                        
-#check (joinStringsWith ", " "one")                            
-#check (joinStringsWith ", " "one" "and another")
+#check (joinStringsWith)                                                             
+#check (joinStringsWith ", ")                                                   
+#check (joinStringsWith ", " "one")                                       
+#check (joinStringsWith ", " "one" "and another")           
 
 def volumeE  height width depth        := height * width * depth
 def volume1 (height width depth : Nat) := height * width * depth
 def volume2 (height : Nat) width depth := height * width * depth
 
-#check  volume1                                           
-#check (volume1)                                          
+#check  volume1                                             
+#check (volume1)                                            
 
-#check  volume2                                           
-#check (volume2)                                          
+#check  volume2                                             
+#check (volume2)                                            
 
 /- -------------- -/
 /- Defining Types -/
@@ -147,9 +147,9 @@ def aStr : Str1    := "This is a string. "
 def bStr : String  := "This is a string. "
 def cStr : Str2    := "This is a string. "
 
-#eval aStr ++ aStr                                       
-#eval bStr ++ bStr                                       
-#eval cStr ++ cStr                                       
+#eval aStr ++ aStr                                         
+#eval bStr ++ bStr                                         
+#eval cStr ++ cStr                                         
 
 /- --------------------- -/
 /- Messages You May Meet -/
@@ -173,12 +173,12 @@ def thirtyEight : N := 38
 /- Structures -/
 /- ---------- -/
 
-#check 1.2                                              
-#check -454.2123215                                     
-#check 0.0                                              
+#check 1.2                                                
+#check -454.2123215                                       
+#check 0.0                                                
 
-#check 0                                                
-#check (0 : Float)                                      
+#check 0                                                  
+#check (0 : Float)                                        
 
 structure Point where
   x : Float
@@ -186,9 +186,9 @@ structure Point where
 
 def origin : Point := { x := 0.0, y := 0.0 }
 
-#eval origin                                            
-#eval origin.x                                          
-#eval origin.y                                          
+#eval origin                                              
+#eval origin.x                                            
+#eval origin.y                                            
 
 def addPoints (p1 : Point) (p2 : Point) : Point :=
   { x := p1.x + p2.x,
@@ -197,7 +197,7 @@ def addPoints (p1 : Point) (p2 : Point) : Point :=
 def p1 : Point := { x := 1.5, y := 32 }
 def p2 : Point := { x := -8,  y := 0.2 }
   
-#eval addPoints p1 p2                                   
+#eval addPoints p1 p2                                     
 
 def distance (p1 : Point) (p2 : Point) : Float :=
   Float.sqrt (((p2.x - p1.x) ^ 2.0) + ((p2.y - p1.y) ^ 2.0))
@@ -544,7 +544,7 @@ def head? (xs : List α) : Option α :=
 #check List.head! 
 #check List.headD 
 
-#eval [].head?                                        
+#eval [].head?                                         
 #eval [].head? (α := Int)                              
 #eval ([] : List Int).head?                            
 
