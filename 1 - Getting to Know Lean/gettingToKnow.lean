@@ -137,7 +137,7 @@ def volume2 (height : Nat) width depth := height * width * depth
 /- Defining Types -/
 /- -------------- -/
 
-def    Str1  := String
+def    Str1 := String
 abbrev Str2 := String
 
 #check Str1

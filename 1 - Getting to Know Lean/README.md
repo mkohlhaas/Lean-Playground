@@ -1,8 +1,8 @@
 File Order:
-  - 0 evaluatingExpressions.lean
-  - 0 types.lean
-  - 0 functions_Definitions.lean
-  - 0 structures.lean
-  - 0 datatypes_patterns.lean
-  - 0 polymorphism.lean
-  - 0 additional_conveniences.lean
+  - 1 evaluatingExpressions.lean
+  - 2 types.lean
+  - 3 functions_Definitions.lean
+  - 4 structures.lean
+  - 5 datatypes_patterns.lean
+  - 6 polymorphism.lean
+  - 7 additional_conveniences.lean
