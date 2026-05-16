@@ -1,13 +1,22 @@
+-- from previous chapters
+
+def even : Nat -> Bool
+  | Nat.zero   => true
+  | Nat.succ k => not $ even k
+
 /- ------------ -/
 /- Polymorphism -/
 /- ------------ -/
+
+-- https://lean-lang.org/functional_programming_in_lean/find/?domain=Verso.Genre.Manual.section&name=polymorphism
 
 -- use Greek letters for name type arguments (when no more specific name suggests itself)
 structure PPoint (α : Type) where
   x : α
   y : α
 
-#check (PPoint)
+#print  PPoint                                          
+#check (PPoint)                                         
 
 def natOrigin : PPoint Nat := { x := Nat.zero, y := Nat.zero }
 
@@ -24,7 +33,7 @@ def replaceX' (α : Type) (point : PPoint α) (newX : α) : PPoint α :=
 #check (replaceX' Nat)                                  
 #check (replaceX' Nat natOrigin)                        
 #check (replaceX' Nat natOrigin 5)                      
-#eval replaceX' Nat natOrigin 5                         
+#eval   replaceX' Nat natOrigin 5                       
 
 inductive Sign where
   | pos
@@ -46,6 +55,8 @@ def posOrNegThree (s : Sign) : match s with | Sign.pos => Nat | Sign.neg => Int 
 /- Linked Lists -/
 /- ------------ -/
 
+-- https://lean-lang.org/functional_programming_in_lean/find/?domain=Verso.Genre.Manual.section&name=linked-lists
+
 def primesUnder10 : List Nat := [2, 3, 5, 7]
 
 def explicitPrimesUnder10 : List Nat :=
@@ -57,6 +68,8 @@ def explicitPrimesUnder10 : List Nat :=
 inductive MyList (α : Type) where
   | nil  : MyList α
   | cons : α → MyList α → MyList α
+
+#print List                                             
 
 #eval List.length ["Sourdough", "bread"]                
 
@@ -88,6 +101,8 @@ def length1 (xs : List α) : Nat :=
 /- Implicit Arguments -/
 /- ------------------ -/
 
+-- https://lean-lang.org/functional_programming_in_lean/find/?domain=Verso.Genre.Manual.section&name=implicit-parameters
+
 -- Arguments can be declared implicit by wrapping them in curly braces instead of parentheses when defining a function.
 def replaceX'' {α : Type} (point : PPoint α) (newX : α) : PPoint α :=
   { point with x := newX }
@@ -110,13 +125,19 @@ def length' {α : Type} (xs : List α) : Nat :=
 /- More Built-In Datatypes -/
 /- ======================= -/
 
+-- https://lean-lang.org/functional_programming_in_lean/find/?domain=Verso.Genre.Manual.section&name=more-built-in-types
+
 /- ------ -/
 /- Option -/
 /- ------ -/
 
+-- https://lean-lang.org/functional_programming_in_lean/find/?domain=Verso.Genre.Manual.section&name=Option
+
 inductive MyOption (α : Type) : Type where
   | none           : MyOption α
   | some (val : α) : MyOption α
+
+#print Option                                          
 
 -- def head? {α : Type} (xs : List α) : Option α :=
 def head? (xs : List α) : Option α :=
@@ -135,10 +156,10 @@ def head? (xs : List α) : Option α :=
 -- List.head! crashes the program when passed an empty list
 -- List.headD takes a default value to return in case the list is empty
 
-#check List.head  
-#check List.head? 
-#check List.head! 
-#check List.headD 
+#check List.head                                       
+#check List.head?                                      
+#check List.head!                                      
+#check List.headD                                      
 
 #eval [].head?                                         
 #eval [].head? (α := Int)                              
@@ -151,6 +172,8 @@ def head? (xs : List α) : Option α :=
 /- Prod -/
 /- ---- -/
 
+-- https://lean-lang.org/functional_programming_in_lean/find/?domain=Verso.Genre.Manual.section&name=prod
+
 -- pair of values
 -- similar to C++ tuples
 
@@ -158,7 +181,8 @@ structure MyProd (α : Type) (β : Type) : Type where
   fst : α
   snd : β
 
-#check (Prod)
+#print  Prod                                           
+#check (Prod)                                          
 
 -- special syntax: Prod α β = α × β
 def fives1 : String × Int := { fst := "five", snd := 5 }
@@ -175,6 +199,8 @@ def sevens3 : (String × Int) × Nat := (("VII", 7), 4)
 /- Sum -/
 /- --- -/
 
+-- https://lean-lang.org/functional_programming_in_lean/find/?domain=Verso.Genre.Manual.section&name=Sum
+
 -- The Sum datatype is a generic way of allowing a choice between values of two different types.
 
 -- Disjoint union of types `α` and `β`, ordinarily written `α ⊕ β`.
@@ -182,7 +208,8 @@ inductive MySum (α : Type) (β : Type) : Type where
   | inl : α → MySum α β -- left  injection
   | inr : β → MySum α β -- right injection
 
-#check (Sum)
+#print  Sum                                           
+#check (Sum)                                          
 
 -- special syntax: Sum α β = α ⊕ β
 -- dog name (left injection) or cat name (right injection)
@@ -207,13 +234,16 @@ def howManyDogs (pets : List PetName) : Nat :=
 /- Unit -/
 /- ---- -/
 
+-- https://lean-lang.org/functional_programming_in_lean/find/?domain=Verso.Genre.Manual.section&name=Unit
+
 -- can be used in polymorphic code as a placeholder for missing data
 inductive MyUnit : Type where
   | unit : MyUnit
 
 -- Unit's constructor can be written as empty parentheses `()`
 
-#check (Unit)
+#print  Unit                                           
+#check (Unit)                                          
 
 /- ann = annotation -/
 inductive ArithExpr (ann : Type) : Type where
@@ -229,6 +259,8 @@ inductive ArithExpr (ann : Type) : Type where
 /- Empty -/
 /- ----- -/
 
+-- https://lean-lang.org/functional_programming_in_lean/find/?domain=Verso.Genre.Manual.section&name=Empty
+
 -- The empty type - it has no constructors!
 -- `Empty` indicates unreachable code
 
@@ -238,6 +270,8 @@ inductive ArithExpr (ann : Type) : Type where
 /- Naming: Sums, Products, and Units -/
 /- --------------------------------- -/
 
+-- https://lean-lang.org/functional_programming_in_lean/find/?domain=Verso.Genre.Manual.section&name=sum-products-units
+
 -- Generally speaking, types that offer multiple constructors    are called SUM TYPES,
 -- while types whose single constructor takes multiple arguments are called PRODUCT TYPES. 
 
@@ -245,13 +279,15 @@ inductive ArithExpr (ann : Type) : Type where
 /- Messages You May Meet -/
 /- --------------------- -/
 
+-- https://lean-lang.org/functional_programming_in_lean/find/?domain=Verso.Genre.Manual.section&name=polymorphism-messages
+
 -- see chapter on universes
 inductive MyType : Type where
-  | ctor : (α : Type) → α → MyType
+  | ctor : (α : Type) → α → MyType                           
 
 -- If a constructor's argument is a function that takes the datatype being defined as an argument, then the definition is rejected.
 -- Allowing these datatypes could make it possible to undermine Lean's internal logic, making it unsuitable for use as a theorem prover.
-inductive MyType' : Type where
+inductive MyType' : Type where                               
   | ctor : (MyType' → Int) → MyType'
 
 -- recursive functions that take two parameters should not match against the pair, but rather match each parameter independently
@@ -277,13 +313,13 @@ def sameLength (xs : List α) (ys : List β) : Bool :=
 
 -- forgetting an argument to an inductive type can yield a confusing message
 inductive MyType'' (α : Type) : Type where
-  | ctor : α → MyType''
+  | ctor : α → MyType''                                      
 
 -- same message can appear when type arguments are omitted in other contexts
 inductive MyType''' (α : Type) : Type where
   | ctor : α → MyType''' α
 
-def ofFive : MyType''' := ctor 5
+def ofFive : MyType''' := ctor 5                             
 
 inductive WoodSplittingTool where
   | axe
@@ -292,7 +328,7 @@ inductive WoodSplittingTool where
   deriving Repr
   
 -- `deriving Repr` wouldn't be necessary
-#eval WoodSplittingTool.axe                            
+#eval WoodSplittingTool.axe                                  
 
 def allTools : List WoodSplittingTool := [
   WoodSplittingTool.axe,
@@ -301,11 +337,13 @@ def allTools : List WoodSplittingTool := [
 ]
 
 -- `deriving Repr` is necessary
-#eval allTools                                         
+#eval allTools                                               
 
 /- --------- -/
 /- Exercises -/
 /- --------- -/
+
+-- https://lean-lang.org/functional_programming_in_lean/find/?domain=Verso.Genre.Manual.section&name=polymorphism-exercises
 
 -- 1. Write a function to find the last entry in a list. It should return an Option.
 
@@ -315,9 +353,9 @@ def lastEntry (l : List α) : Option α :=
   | [elem]   => some elem
   | _ :: xs  => lastEntry xs
 
-#eval lastEntry ([] : List Nat)                        
-#eval lastEntry [1]                                    
-#eval lastEntry [1, 2, 3, 4, 5]                        
+#eval lastEntry ([] : List Nat)                             
+#eval lastEntry [1]                                         
+#eval lastEntry [1, 2, 3, 4, 5]                             
 
 -- 2. Write a function that finds the first entry in a list that satisfies a given predicate.
 --    Start the definition with def List.findFirst? {α : Type} (xs : List α) (predicate : α → Bool) : Option α := ….
@@ -327,9 +365,9 @@ def List.findFirst? {α : Type} (xs : List α) (predicate : α → Bool) : Optio
   | []      => none
   | x :: xs => if predicate x then some x else List.findFirst? xs predicate
 
-#eval List.findFirst? []              even             
-#eval List.findFirst? [1, 3, 5]       even             
-#eval List.findFirst? [1, 2, 3, 4, 5] even             
+#eval List.findFirst? []              even                  
+#eval List.findFirst? [1, 3, 5]       even                  
+#eval List.findFirst? [1, 2, 3, 4, 5] even                  
 
 -- 3. Write a function Prod.switch that switches the two fields in a pair for each other.
 --    Start the definition with def Prod.switch {α β : Type} (pair : α × β) : β × α := ….
@@ -338,7 +376,7 @@ def Prod.switch {α β : Type} (pair : α × β) : β × α :=
   match pair with
   | (a, b) => (b, a)
 
-#eval Prod.switch (1, 2)                               
+#eval Prod.switch (1, 2)                                    
 
 -- 4. Rewrite the PetName example to use a custom datatype and compare it to the version that uses Sum.
 
@@ -359,7 +397,7 @@ def howManyDogs1 (pets : List Pet) : Nat :=
   | Pet.dogName _ :: pets => 1 + howManyDogs1 pets
   | Pet.catName _ :: pets => howManyDogs1 pets
 
-#eval howManyDogs1 animals1                                          
+#eval howManyDogs1 animals1                                 
 
 -- 5. Write a function zip that combines two lists into a list of pairs.
 --    The resulting list should be as long as the shortest input list.
@@ -380,9 +418,9 @@ def zip {α β : Type} (xs : List α) (ys : List β) : List (α × β) :=
                 | []       => []
                 | y :: ys' => List.cons (x, y) (zip xs' ys')
 
-#eval zip [1, 2, 3, 4, 5] ["a", "b", "c", "d", "e"]                  
-#eval zip [1, 2, 3, 4   ] ["a", "b", "c", "d", "e"]                  
-#eval zip [1, 2, 3, 4, 5] ["a", "b", "c", "d"     ]                  
+#eval zip [1, 2, 3, 4, 5] ["a", "b", "c", "d", "e"]         
+#eval zip [1, 2, 3, 4   ] ["a", "b", "c", "d", "e"]         
+#eval zip [1, 2, 3, 4, 5] ["a", "b", "c", "d"     ]         
 
 -- 6. Write a polymorphic function take that returns the first nn entries in a list, where nn is a Nat.
 --    If the list contains fewer than n entries, then the resulting list should be the entire input list.
@@ -398,8 +436,8 @@ def takeAcc (n : Nat) (xs : List α) (ys : List α) : List α :=
 
 def take (n : Nat) (xs : List α) : List α := takeAcc n xs []
 
-#eval take 1 ["bolete", "oyster"]                                   
-#eval take 3 ["bolete", "oyster"]                                   
+#eval take 1 ["bolete", "oyster"]                           
+#eval take 3 ["bolete", "oyster"]                           
 
 -- 7. Using the analogy between types and arithmetic, write a function that distributes products over sums.
 --    In other words, it should have type α × (β ⊕ γ) → (α × β) ⊕ (α × γ).
@@ -409,8 +447,8 @@ def distribute (e : α × (β ⊕ γ)) : (α × β) ⊕ (α × γ) :=
   | (a, Sum.inl b) => Sum.inl (a, b)
   | (a, Sum.inr c) => Sum.inr (a, c)
   
-#eval distribute (1, (Sum.inl "a" : String ⊕ String))               
-#eval distribute (1, (Sum.inr "a" : String ⊕ String))               
+#eval distribute (1, (Sum.inl "a" : String ⊕ String))       
+#eval distribute (1, (Sum.inr "a" : String ⊕ String))       
 
 -- 8. Using the analogy between types and arithmetic, write a function that turns multiplication by two into a sum.
 --    In other words, it should have type Bool × α → α ⊕ α. 
@@ -419,4 +457,3 @@ def mult2sum (e : Bool × α) : α ⊕ α :=
   match e with
   | (true,  a) => Sum.inl a
   | (false, a) => Sum.inr a
-  

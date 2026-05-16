@@ -125,13 +125,18 @@ def rectPrism : RectangularPrism := {height := 5., width := 4., depth := 2.}
 def volumePrism (p : RectangularPrism) : Float :=
   p.height * p.width * p.depth
 
-def RectangularPrism.volume := volumePrism
+-- with pattern matching
+def volumePrism' : RectangularPrism -> Float 
+  | {height, width, depth} => height * width * depth
+
+def RectangularPrism.volume := volumePrism'
 
 #check (volumePrism)                                        
 #check (RectangularPrism.volume)                            
 
 #check 5.                                                   
-#eval volumePrism rectPrism                                 
+#eval volumePrism  rectPrism                                
+#eval volumePrism' rectPrism                                
 #eval rectPrism.volume                                      
 
 structure Segment where
