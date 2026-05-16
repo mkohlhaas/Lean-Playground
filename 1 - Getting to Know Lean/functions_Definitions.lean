@@ -129,12 +129,26 @@ def volume2 (height : Nat) width depth := height * width * depth
 def    Str1 := String
 abbrev Str2 := String
 
-#check Str1
-#check Str2
+#check Str1                                                    
+#check Str2                                                    
 
-def aStr : Str1    := "This is a string. "
-def bStr : String  := "This is a string. "
-def cStr : Str2    := "This is a string. "
+#check Type                                                    
+#check Type 0                                                  
+#check Type 1                                                  
+#check Type 2                                                  
+#check Type 3                                                  
+#check Type 4                                                  
+#check Type 5                                                  
+#check Type 6                                                  
+#check Type 7                                                  
+#check Type 8                                                  
+-- …
+#check Type 32                                                 
+#check Type 33                                                 
+
+def aStr : Str1   := "This is a string. "
+def bStr : String := "This is a string. "
+def cStr : Str2   := "This is a string. "
 
 #eval aStr ++ aStr                                             
 #eval bStr ++ bStr                                             
@@ -156,6 +170,10 @@ def thirtyEight1 : Nat           :=  38
 def thirtyEight2 : NaturalNumber :=  38                        
 def thirtyEight3 : NaturalNumber := (38 : Nat)
 
+#print OfNat                                                   
+
+-- Definitions that are to be unfolded are called reducible.
+-- Definitions produced with abbrev are marked as reducible. 
 abbrev N := Nat
 
 def thirtyEight : N := 38

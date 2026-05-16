@@ -1,3 +1,12 @@
+-- from previous chapters
+
+structure Point3D where
+  x : Float
+  y : Float
+  z : Float
+
+def origin3D : Point3D := { x := 0.0, y := 0.0, z := 0.0 }
+
 /- ---------------------- -/
 /- Datatypes and Patterns -/
 /- ---------------------- -/
@@ -15,11 +24,15 @@ inductive MyBool where
   | false : MyBool
   | true  : MyBool
 
+#print Bool                                             
+
 inductive MyNat where
   | zero 
   | succ (n : Nat)
 
-#check (Nat.succ)
+#print Nat                                              
+
+#check (Nat.succ)                                       
 
 #eval Nat.succ Nat.zero                                 
 #eval Nat.succ (Nat.succ (Nat.succ (Nat.succ Nat.zero)))
@@ -69,13 +82,13 @@ def depth' (p : Point3D) : Float :=
 def even (n : Nat) : Bool :=
   match n with
   | Nat.zero   => true
-  | Nat.succ k => not (even k)
+  | Nat.succ k => not $ even k
 
 -- Lean doesn't accept recursions which attempt to invoke itself on the original number
 def evenLoops (n : Nat) : Bool :=                      
   match n with
   | Nat.zero   => true
-  | Nat.succ k => not (evenLoops n)
+  | Nat.succ k => not $ evenLoops n
 
 def plus (n : Nat) (k : Nat) : Nat :=
   match k with
