@@ -11,9 +11,15 @@ def even : Nat -> Bool
 -- https://lean-lang.org/functional_programming_in_lean/find/?domain=Verso.Genre.Manual.section&name=polymorphism
 
 -- use Greek letters for name type arguments (when no more specific name suggests itself)
+-- PPoint = Parametric Point (from parametric polymorphism)
 structure PPoint (α : Type) where
   x : α
   y : α
+deriving Repr
+
+-- α must itself be a Repr
+#eval {x := (· + 1), y := (· * 2) : PPoint _ }          
+#eval {x := 1, y := 2 : PPoint _ }                      
 
 #print  PPoint                                          
 #check (PPoint)                                         
@@ -31,8 +37,11 @@ def replaceX' (α : Type) (point : PPoint α) (newX : α) : PPoint α :=
                                 
 #check (replaceX')                                      
 #check (replaceX' Nat)                                  
+#check (replaceX' (PPoint Nat))                         
+#check (replaceX' Type)                                 
 #check (replaceX' Nat natOrigin)                        
 #check (replaceX' Nat natOrigin 5)                      
+
 #eval   replaceX' Nat natOrigin 5                       
 
 inductive Sign where
@@ -72,10 +81,23 @@ inductive MyList (α : Type) where
 #print List                                             
 
 #eval List.length ["Sourdough", "bread"]                
+#eval ["Sourdough", "bread"].length                     
 
 -- Generally, functions follow the shape of the data:
-  -- recursive datatypes lead to recursive functions
-  -- polymorphic datatypes lead to polymorphic functions
+--  · recursive datatypes lead to recursive functions
+--  · polymorphic datatypes lead to polymorphic functions
+
+def length' (α : Type) (xs : List α) : Nat :=
+  match xs with
+  | List.nil       => Nat.zero
+  | List.cons _ ys => Nat.succ (length' α ys)
+
+def length'' (α : Type) (xs : List α) : Nat :=
+  match xs with
+  | []      => 0
+  | _ :: ys => Nat.succ (length'' α ys)
+  
+#eval length'' String ["Sourdough", "bread"]            
 
 def length (xs : List α) : Nat :=
   match xs with
@@ -84,15 +106,15 @@ def length (xs : List α) : Nat :=
 
 #eval length ["Sourdough", "bread"]                     
 
--- using bracket for nil and infix :: operator for cons
+-- syntactiv sugar: using bracket for nil and infix :: operator for cons
 def length1 (xs : List α) : Nat :=
   match xs with
   | []      => 0
-  | _ :: ys => Nat.succ (length1 ys)
+  | _ :: ys => Nat.succ $ length1 ys
 
+#check (length1)                                        
+#check (length1 (α := Int))                             
 #eval length1 ["Sourdough", "bread"]                    
-
-#eval ["Sourdough", "bread"].length                     
 
 #check (List.length)                                    
 #check List.length (α := Int)                           
@@ -103,23 +125,37 @@ def length1 (xs : List α) : Nat :=
 
 -- https://lean-lang.org/functional_programming_in_lean/find/?domain=Verso.Genre.Manual.section&name=implicit-parameters
 
--- Arguments can be declared implicit by wrapping them in curly braces instead of parentheses when defining a function.
+-- Arguments can be declared implicit by wrapping them in curly braces instead
+-- of parentheses when defining a function.
 def replaceX'' {α : Type} (point : PPoint α) (newX : α) : PPoint α :=
   { point with x := newX }
 
-#eval replaceX'' natOrigin 5                           
+#check (replaceX'')                                    
+#check (replaceX'' (α := Int))                         
+#check (replaceX'' natOrigin)                          
+#eval   replaceX'' natOrigin 5                         
 
-def length' {α : Type} (xs : List α) : Nat :=
+def length''' {α : Type} (xs : List α) : Nat :=
   match xs with
   | []      => 0
-  | _ :: ys => Nat.succ (length ys)
+  | _ :: ys => Nat.succ $ length''' ys
 
-#eval length' primesUnder10                            
+#check (length''')                                     
+#check (length''' (α := Int))                          
+
+#eval length''' primesUnder10                          
 #eval primesUnder10.length                             
 
 -- specifying the implicit argument
 #check (List.length)                                   
 #check List.length (α := Int)                          
+
+def lengthListGeneric (xs : List α) :=
+  xs.length 
+
+/- def lengthListInts (xs : List α) := -- leads to an error -/
+def lengthListInts (xs : List Int) :=
+  xs.length (α := Int)                                      -- makes it explicit; implicit argument could be left out
 
 /- ======================= -/
 /- More Built-In Datatypes -/
@@ -138,6 +174,9 @@ inductive MyOption (α : Type) : Type where
   | some (val : α) : MyOption α
 
 #print Option                                          
+
+-- multiple layers of Option
+#check some $ some (-5)                                
 
 -- def head? {α : Type} (xs : List α) : Option α :=
 def head? (xs : List α) : Option α :=
@@ -186,7 +225,7 @@ structure MyProd (α : Type) (β : Type) : Type where
 
 -- special syntax: Prod α β = α × β
 def fives1 : String × Int := { fst := "five", snd := 5 }
-def fives2 : String × Int := ("five", 5)
+def fives2 : String × Int := ("five", 5)                    -- syntactic sugar
 
 -- right-associative
 -- Products nest to the right, so `(x, y, z) : α × β × γ` is equivalent to `(x, (y, z)) : α × (β × γ)`.
@@ -194,6 +233,9 @@ def fives2 : String × Int := ("five", 5)
 def sevens1 : String × Int × Nat   := ("VII",  7,  4)
 def sevens2 : String × (Int × Nat) := ("VII",  7,  4)
 def sevens3 : (String × Int) × Nat := (("VII", 7), 4)
+
+#eval ("VII", 7, 4 + 3).snd                            
+#eval ("VII", 7, 4 + 3).snd.snd                        
 
 /- --- -/
 /- Sum -/
@@ -205,14 +247,15 @@ def sevens3 : (String × Int) × Nat := (("VII", 7), 4)
 
 -- Disjoint union of types `α` and `β`, ordinarily written `α ⊕ β`.
 inductive MySum (α : Type) (β : Type) : Type where
-  | inl : α → MySum α β -- left  injection
-  | inr : β → MySum α β -- right injection
+  | inl : α → MySum α β                                    -- left  injection
+  | inr : β → MySum α β                                    -- right injection
 
 #print  Sum                                           
 #check (Sum)                                          
 
 -- special syntax: Sum α β = α ⊕ β
--- dog name (left injection) or cat name (right injection)
+-- dog name (inl = left injection)
+-- cat name (inr = right injection)
 def PetName : Type := String ⊕ String
 
 def animals : List PetName :=
@@ -224,9 +267,9 @@ def animals : List PetName :=
 
 def howManyDogs (pets : List PetName) : Nat :=
   match pets with
-  | []                => 0
-  | Sum.inl _ :: pets => 1 + howManyDogs pets
-  | Sum.inr _ :: pets => howManyDogs pets
+  | []                 => 0
+  | Sum.inr _ :: pets' => howManyDogs pets'
+  | Sum.inl _ :: pets' => howManyDogs pets' + 1
 
 #eval howManyDogs animals                              
 
@@ -243,17 +286,26 @@ inductive MyUnit : Type where
 -- Unit's constructor can be written as empty parentheses `()`
 
 #print  Unit                                           
+#print  PUnit                                          
 #check (Unit)                                          
+#check (PUnit)                                         
 
-/- ann = annotation -/
+-- ann = annotation
 inductive ArithExpr (ann : Type) : Type where
   | int   : ann → Int → ArithExpr ann
   | plus  : ann → ArithExpr ann → ArithExpr ann → ArithExpr ann
   | minus : ann → ArithExpr ann → ArithExpr ann → ArithExpr ann
   | times : ann → ArithExpr ann → ArithExpr ann → ArithExpr ann
 
-/- ArithExpr SourcePos  -/ -- Expressions coming from a parser are annotated with source locations
-/- ArithExpr Unit       -/ -- Expressions not coming from the parser will not have source locations
+structure SourcePos where
+  line   : Nat
+  column : Nat
+
+-- ArithExpr SourcePos -- Expressions coming from a parser are annotated with source locations
+-- ArithExpr Unit      -- Expressions not coming from the parser
+
+#check ArithExpr.int () 5                                    
+#check ArithExpr.int {line := 10, column := 34 : SourcePos} 5
 
 /- ----- -/
 /- Empty -/
@@ -261,16 +313,26 @@ inductive ArithExpr (ann : Type) : Type where
 
 -- https://lean-lang.org/functional_programming_in_lean/find/?domain=Verso.Genre.Manual.section&name=Empty
 
--- The empty type - it has no constructors!
+-- The empty type has no constructors!
 -- `Empty` indicates unreachable code
 
-#check (Empty)
+#print  Empty                                          
+#check (Empty)                                         
 
 /- --------------------------------- -/
 /- Naming: Sums, Products, and Units -/
 /- --------------------------------- -/
 
 -- https://lean-lang.org/functional_programming_in_lean/find/?domain=Verso.Genre.Manual.section&name=sum-products-units
+
+-- Product type
+#check (true,  ())                                     
+#check (false, ())                                     
+
+-- no special syntax for Sum type
+#check Sum.inl true                                    
+#check Sum.inl false                                   
+#check Sum.inr Unit.unit                               
 
 -- Generally speaking, types that offer multiple constructors    are called SUM TYPES,
 -- while types whose single constructor takes multiple arguments are called PRODUCT TYPES. 
@@ -283,14 +345,17 @@ inductive ArithExpr (ann : Type) : Type where
 
 -- see chapter on universes
 inductive MyType : Type where
-  | ctor : (α : Type) → α → MyType                           
+  | ctor : (α : Type) → α → MyType                     
 
--- If a constructor's argument is a function that takes the datatype being defined as an argument, then the definition is rejected.
--- Allowing these datatypes could make it possible to undermine Lean's internal logic, making it unsuitable for use as a theorem prover.
-inductive MyType' : Type where                               
+-- If a constructor's argument is a function that takes the datatype being
+-- defined as an argument, then the definition is rejected. Allowing these
+-- datatypes could make it possible to undermine Lean's internal logic, making
+-- it unsuitable for use as a theorem prover.
+inductive MyType' : Type where                         
   | ctor : (MyType' → Int) → MyType'
 
--- recursive functions that take two parameters should not match against the pair, but rather match each parameter independently
+-- recursive functions that take two parameters should not match against the
+-- pair, but rather match each parameter independently
 def badSameLength (xs : List α) (ys : List β) : Bool :=
   match (xs, ys) with
   | ([], [])             => true
@@ -309,26 +374,33 @@ def sameLength (xs : List α) (ys : List β) : Bool :=
     | []       => false
     | _ :: ys' => sameLength xs' ys'
 
--- SIMULTANEOUS MATCHING is another way to solve the problem that is often more elegant (described in a later chapter)
+#eval sameLength [1,2,3] [4,5,6]                       
+#eval sameLength [1,2,3] [4,5,6,7]                     
+
+-- SIMULTANEOUS MATCHING is another way to solve the problem that is often more
+-- elegant (described in a later chapter)
 
 -- forgetting an argument to an inductive type can yield a confusing message
 inductive MyType'' (α : Type) : Type where
-  | ctor : α → MyType''                                      
+  | ctor : α → MyType''                                
 
 -- same message can appear when type arguments are omitted in other contexts
 inductive MyType''' (α : Type) : Type where
   | ctor : α → MyType''' α
 
-def ofFive : MyType''' := ctor 5                             
+def ofFive  : MyType''' Int := MyType'''.ctor 5                             
+def ofFive' : MyType'''     := MyType'''.ctor 5        
 
 inductive WoodSplittingTool where
   | axe
   | maul
   | froe
-  deriving Repr
+deriving Repr
   
--- `deriving Repr` wouldn't be necessary
-#eval WoodSplittingTool.axe                                  
+-- deriving Repr not necessary
+#eval WoodSplittingTool.axe                            
+#eval WoodSplittingTool.maul                           
+#eval WoodSplittingTool.froe                           
 
 def allTools : List WoodSplittingTool := [
   WoodSplittingTool.axe,
@@ -337,7 +409,7 @@ def allTools : List WoodSplittingTool := [
 ]
 
 -- `deriving Repr` is necessary
-#eval allTools                                               
+#eval allTools                                         
 
 /- --------- -/
 /- Exercises -/
@@ -353,21 +425,21 @@ def lastEntry (l : List α) : Option α :=
   | [elem]   => some elem
   | _ :: xs  => lastEntry xs
 
-#eval lastEntry ([] : List Nat)                             
-#eval lastEntry [1]                                         
-#eval lastEntry [1, 2, 3, 4, 5]                             
+#eval lastEntry ([] : List Nat)                       
+#eval lastEntry [1]                                   
+#eval lastEntry [1, 2, 3, 4, 5]                       
 
 -- 2. Write a function that finds the first entry in a list that satisfies a given predicate.
 --    Start the definition with def List.findFirst? {α : Type} (xs : List α) (predicate : α → Bool) : Option α := ….
 
 def List.findFirst? {α : Type} (xs : List α) (predicate : α → Bool) : Option α :=
   match xs with
-  | []      => none
-  | x :: xs => if predicate x then some x else List.findFirst? xs predicate
+  | []       => none
+  | x :: xs' => if predicate x then some x else List.findFirst? xs' predicate
 
-#eval List.findFirst? []              even                  
-#eval List.findFirst? [1, 3, 5]       even                  
-#eval List.findFirst? [1, 2, 3, 4, 5] even                  
+#eval List.findFirst? []              even            
+#eval List.findFirst? [1, 3, 5]       even            
+#eval List.findFirst? [1, 2, 3, 4, 5] even            
 
 -- 3. Write a function Prod.switch that switches the two fields in a pair for each other.
 --    Start the definition with def Prod.switch {α β : Type} (pair : α × β) : β × α := ….
@@ -376,7 +448,11 @@ def Prod.switch {α β : Type} (pair : α × β) : β × α :=
   match pair with
   | (a, b) => (b, a)
 
-#eval Prod.switch (1, 2)                                    
+def Prod.switch' {α β : Type} : α × β -> β × α
+  | (a, b) => (b, a)
+
+#eval Prod.switch  (1, "a")                           
+#eval Prod.switch' (1, "a")                           
 
 -- 4. Rewrite the PetName example to use a custom datatype and compare it to the version that uses Sum.
 
@@ -393,11 +469,11 @@ def animals1 : List Pet :=
 
 def howManyDogs1 (pets : List Pet) : Nat :=
   match pets with
-  | []                    => 0
-  | Pet.dogName _ :: pets => 1 + howManyDogs1 pets
-  | Pet.catName _ :: pets => howManyDogs1 pets
+  | []                     => 0
+  | Pet.catName _ :: pets' => howManyDogs1 pets'
+  | Pet.dogName _ :: pets' => howManyDogs1 pets' + 1
 
-#eval howManyDogs1 animals1                                 
+#eval howManyDogs1 animals1                           
 
 -- 5. Write a function zip that combines two lists into a list of pairs.
 --    The resulting list should be as long as the shortest input list.
@@ -405,10 +481,17 @@ def howManyDogs1 (pets : List Pet) : Nat :=
 
 -- see `badSameLength`
 def badZip {α β : Type} (xs : List α) (ys : List β) : List (α × β) :=
-  match (xs, ys) with
+  match (xs, ys) with                                                     -- matching on a pair
   | ([], _)              => []
   | (_, [])              => []
-  | (x :: xs', y :: ys') => List.cons (x, y) (badZip xs' ys')
+  | (x :: xs', y :: ys') => (x, y) :: badZip xs' ys'
+
+-- simultaneous pattern-matching
+def goodZip {α β : Type} (xs : List α) (ys : List β) : List (α × β) :=
+  match xs, ys with                                                       -- simultaneous pattern-matching
+  | [], _              => []
+  | _, []              => []
+  | x :: xs', y :: ys' => (x, y) :: goodZip xs' ys'
 
 -- using nested pattern matching
 def zip {α β : Type} (xs : List α) (ys : List β) : List (α × β) :=
@@ -416,44 +499,53 @@ def zip {α β : Type} (xs : List α) (ys : List β) : List (α × β) :=
   | []       => []
   | x :: xs' => match ys with
                 | []       => []
-                | y :: ys' => List.cons (x, y) (zip xs' ys')
+                | y :: ys' => (x, y) :: zip xs' ys'
 
-#eval zip [1, 2, 3, 4, 5] ["a", "b", "c", "d", "e"]         
-#eval zip [1, 2, 3, 4   ] ["a", "b", "c", "d", "e"]         
-#eval zip [1, 2, 3, 4, 5] ["a", "b", "c", "d"     ]         
+#eval zip [1, 2, 3, 4, 5] ["a", "b", "c", "d", "e"]   
+#eval zip [1, 2, 3, 4   ] ["a", "b", "c", "d", "e"]   
+#eval zip [1, 2, 3, 4, 5] ["a", "b", "c", "d"     ]   
 
--- 6. Write a polymorphic function take that returns the first nn entries in a list, where nn is a Nat.
+-- 6. Write a polymorphic function take that returns the first n entries in a list, where n is a Nat.
 --    If the list contains fewer than n entries, then the resulting list should be the entire input list.
 --    #eval take 3 ["bolete", "oyster"] should yield ["bolete", "oyster"], and
 --    #eval take 1 ["bolete", "oyster"] should yield ["bolete"].
 
-def takeAcc (n : Nat) (xs : List α) (ys : List α) : List α :=
-  match n with
-  | 0 => ys
-  | _ => match xs with
-         | []       => List.reverse ys
-         | x :: xs' => takeAcc (n - 1) xs' (List.cons x ys)
+def take (n : Nat) (xs : List α) : List α :=
+  let rec takeAcc (n : Nat) (xs : List α) (ys : List α) :=
+    match n with
+    | 0 => ys
+    | _ => match xs with
+           | []       => List.reverse ys
+           | x :: xs' => takeAcc (n - 1) xs' $ List.cons x ys
+  takeAcc n xs []
 
-def take (n : Nat) (xs : List α) : List α := takeAcc n xs []
+#eval take 1 ["bolete", "oyster"]                     
+#eval take 3 ["bolete", "oyster"]                     
 
-#eval take 1 ["bolete", "oyster"]                           
-#eval take 3 ["bolete", "oyster"]                           
+def take' (n : Nat) (xs : List α) : List α :=
+  match n, xs with                                         -- simultaneous pattern-matching 
+  | 0, _            => []
+  | _, []           => []
+  | n + 1, x :: xs' => x :: take n xs'
+
+#eval take' 1 ["bolete", "oyster"]                    
+#eval take' 3 ["bolete", "oyster"]                    
 
 -- 7. Using the analogy between types and arithmetic, write a function that distributes products over sums.
 --    In other words, it should have type α × (β ⊕ γ) → (α × β) ⊕ (α × γ).
 
-def distribute (e : α × (β ⊕ γ)) : (α × β) ⊕ (α × γ) :=
-  match e with
+def distribute (pair : α × (β ⊕ γ)) : (α × β) ⊕ (α × γ) :=
+  match pair with
   | (a, Sum.inl b) => Sum.inl (a, b)
   | (a, Sum.inr c) => Sum.inr (a, c)
   
-#eval distribute (1, (Sum.inl "a" : String ⊕ String))       
-#eval distribute (1, (Sum.inr "a" : String ⊕ String))       
+#eval distribute (1, (Sum.inl "a" : String ⊕ String)) 
+#eval distribute (1, (Sum.inr "a" : String ⊕ String)) 
 
 -- 8. Using the analogy between types and arithmetic, write a function that turns multiplication by two into a sum.
 --    In other words, it should have type Bool × α → α ⊕ α. 
 
-def mult2sum (e : Bool × α) : α ⊕ α :=
-  match e with
-  | (true,  a) => Sum.inl a
-  | (false, a) => Sum.inr a
+def mult2sum (pair : Bool × α) : α ⊕ α :=
+  match pair with
+  | (false, a) => Sum.inl a
+  | (true,  a) => Sum.inr a

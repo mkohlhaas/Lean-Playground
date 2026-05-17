@@ -67,7 +67,7 @@ def unzip : List (α × β) → List α × List β
 def reverse (xs : List α) : List α :=
   let rec helper : List α → List α → List α
     | [], soFar      => soFar
-    | y :: ys, soFar => helper ys (y :: soFar)
+    | y :: ys, soFar => helper ys $ y :: soFar
   helper xs []
 
 /- -------------- -/
